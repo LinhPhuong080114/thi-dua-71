@@ -1,0 +1,655 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>THI ĐUA TỔ - LỚP 7/1</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        chalkGreen: '#1e3a29', chalkBoard: '#152b1e', chalkSoft: '#2d543c',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { font-family: system-ui, -apple-system, sans-serif; background-color: #1a3324; color: #f0fdf4; }
+        .chalk-bg {
+            background-image: 
+                radial-gradient(rgba(255, 255, 255, 0.08) 1px, transparent 0),
+                linear-gradient(to right, rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+                linear-gradient(to bottom, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+            background-size: 24px 24px, 40px 40px, 40px 40px;
+        }
+        .duck-lane { transition: left 0.6s cubic-bezier(0.34, 1.56, 0.64, 1); }
+        @keyframes waddle {
+            0%, 100% { transform: translateY(0) rotate(0deg); }
+            25% { transform: translateY(-5px) rotate(-6deg); }
+            75% { transform: translateY(3px) rotate(6deg); }
+        }
+        .animate-waddle { animation: waddle 0.7s infinite ease-in-out; display: inline-block; }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col chalk-bg">
+
+    <header class="bg-chalkBoard border-b-2 border-emerald-800 shadow-lg sticky top-0 z-30">
+        <div class="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
+            <div class="flex items-center space-x-3">
+                <a href="index.html" class="px-3 py-1.5 bg-emerald-900/90 hover:bg-emerald-800 rounded-xl text-amber-300 text-xs font-bold transition flex items-center gap-1.5">
+                    <i class="fa-solid fa-house"></i> <span>Trang Chủ</span>
+                </a>
+                <div class="w-10 h-10 rounded-xl bg-amber-400 text-slate-950 flex items-center justify-center text-2xl font-bold shadow">🦆</div>
+                <h1 class="text-xl sm:text-2xl font-bold text-amber-300 tracking-wide">ĐUA VỊT - THI ĐUA TỔ</h1>
+            </div>
+
+            <div class="flex items-center space-x-2">
+                <button id="shareBtn" class="flex items-center space-x-1.5 px-3 py-1.5 rounded-lg bg-emerald-900/80 text-emerald-200 hover:bg-emerald-800 border border-emerald-700 text-xs font-bold transition">
+                    <i class="fa-solid fa-share-nodes"></i><span class="hidden sm:inline">Chia Sẻ</span>
+                </button>
+                <button id="authBtn" class="flex items-center space-x-1.5 px-3.5 py-1.5 rounded-lg text-xs font-bold transition bg-amber-500 text-slate-950 hover:bg-amber-400 shadow">
+                    <i class="fa-solid fa-lock" id="authLockIcon"></i><span id="authBtnText"> Đăng Nhập</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <main class="flex-1 max-w-6xl w-full mx-auto p-4 space-y-6">
+
+        <div class="bg-chalkSoft/80 rounded-2xl p-5 border border-emerald-700/60 shadow-md flex flex-wrap items-center justify-between gap-4">
+            <div>
+                <span class="bg-amber-400 text-slate-950 text-xs px-2.5 py-1 rounded font-bold uppercase tracking-wider inline-block mb-1">Thi Đua Lớp 7/1</span>
+                <h2 class="text-2xl font-bold text-white">Điểm Cộng / Trừ Các Tổ</h2>
+            </div>
+            <div class="bg-chalkBoard px-4 py-2.5 rounded-xl border border-emerald-800 text-center min-w-[160px]">
+                <div class="text-[11px] text-emerald-400 font-bold uppercase">Tài Khoản Hiện Tại</div>
+                <div id="userStatusTag" class="text-xs font-bold mt-0.5 text-amber-300">Chế Độ Người Xem</div>
+            </div>
+        </div>
+
+        <section class="grid grid-cols-2 md:grid-cols-4 gap-4" id="cardsGrid"></section>
+
+        <section class="bg-chalkBoard rounded-2xl p-4 sm:p-6 shadow-xl border border-emerald-800 space-y-4">
+            <h3 class="text-lg font-bold text-amber-300 flex items-center gap-2 border-b border-emerald-800/80 pb-3">
+                <i class="fa-solid fa-flag-checkered"></i> Đường Đua Thi Đua Các Tổ
+            </h3>
+            <div class="space-y-4 overflow-x-auto py-2">
+                <div class="min-w-[650px] space-y-4" id="tracksContainer"></div>
+            </div>
+        </section>
+
+        <!-- KHU VỰC BÁO CÁO 8 Ô DÀNH CHO TỔ TRƯỞNG / TỔ PHÓ & BAN CÁN SỰ -->
+        <section id="reportSection" class="bg-chalkBoard rounded-2xl p-4 sm:p-6 shadow-xl border border-emerald-800 space-y-4">
+            <div class="flex items-center justify-between border-b border-emerald-800/80 pb-3">
+                <h3 class="text-lg font-bold text-amber-300 flex items-center gap-2">
+                    <i class="fa-solid fa-clipboard-list"></i> Báo Cáo Thi Đua 8 Chức Danh (Tổ Trưởng & Tổ Phó)
+                </h3>
+                <span class="text-xs text-emerald-300 italic">Chỉ Ban cán sự & Tổ trưởng/Tổ phó xem được</span>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4" id="reportsGrid"></div>
+        </section>
+
+        <!-- THÔNG BÁO CHUNG -->
+        <section class="bg-chalkBoard rounded-2xl p-4 sm:p-6 shadow-xl border border-emerald-800 space-y-3">
+            <h3 class="text-lg font-bold text-amber-300 flex items-center gap-2 border-b border-emerald-800/80 pb-3">
+                <i class="fa-solid fa-bullhorn"></i> Thông Báo Bảng Tin
+            </h3>
+            <div id="adminAnnouncementForm" class="hidden pb-2">
+                <form id="sendNoticeForm" class="flex flex-col sm:flex-row gap-2">
+                    <input type="text" id="noticeInput" placeholder="Nhập thông báo mới..." class="flex-1 bg-chalkSoft text-white text-xs rounded-xl px-4 py-2.5 border border-emerald-600 focus:outline-none focus:ring-2 focus:ring-amber-400">
+                    <button type="submit" class="px-4 py-2.5 bg-amber-400 text-slate-950 font-bold rounded-xl text-xs hover:bg-amber-300 transition shadow">Gửi Thông Báo</button>
+                </form>
+            </div>
+            <div class="max-h-60 overflow-y-auto space-y-2 pr-2" id="announcementContainer"></div>
+        </section>
+
+        <!-- LỊCH SỬ CỘNG TRỪ ĐIỂM -->
+        <section class="bg-chalkBoard rounded-2xl p-4 sm:p-6 shadow-xl border border-emerald-800 space-y-3">
+            <h3 class="text-lg font-bold text-amber-300 flex items-center gap-2 border-b border-emerald-800/80 pb-3">
+                <i class="fa-solid fa-clock-rotate-left"></i> Lịch Sử Cộng / Trừ Điểm
+            </h3>
+            <div class="max-h-60 overflow-y-auto space-y-2 pr-2" id="historyContainer"></div>
+        </section>
+
+        <!-- BẢNG ĐIỀU KHUYỂN QUẢN TRỊ (CHỈ HIỂN THỊ KHI ĐĂNG NHẬP BAN CÁN SỰ) -->
+        <section id="adminPanel" class="hidden bg-slate-900 rounded-2xl p-5 sm:p-6 text-white shadow-2xl space-y-6 border border-amber-500/30">
+            <div class="flex flex-wrap items-center justify-between gap-4 border-b border-slate-800 pb-4">
+                <div>
+                    <h3 class="text-lg font-bold text-amber-400 flex items-center gap-2">
+                        <i class="fa-solid fa-sliders"></i> Bảng Điều Khiển Quản Trị Tổ
+                    </h3>
+                    <p class="text-xs text-slate-400 mt-0.5" id="userProfileSubtitle"></p>
+                </div>
+                <div class="flex flex-wrap items-center gap-2">
+                    <button id="profileEditBtn" class="px-3 py-1.5 rounded-lg bg-emerald-500/20 text-emerald-300 hover:bg-emerald-500/30 text-xs font-bold border border-emerald-500/40">
+                        <i class="fa-solid fa-user-pen"></i> Đổi Tên / Mật Khẩu
+                    </button>
+                    <button id="resetAllBtn" class="hidden px-3 py-1.5 rounded-lg bg-rose-500/20 text-rose-300 hover:bg-rose-500/30 text-xs font-bold border border-rose-500/40">
+                        <i class="fa-solid fa-rotate-left"></i> Đặt Lại 100 Bước (GVCN/LT/Kỷ Luật 1)
+                    </button>
+                    <button id="logoutBtn" class="px-3 py-1.5 rounded-lg bg-slate-800 text-slate-300 hover:bg-slate-700 text-xs font-bold border border-slate-700">Thoát</button>
+                </div>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4" id="adminControlsGrid"></div>
+        </section>
+    </main>
+
+    <!-- MODAL ĐĂNG NHẬP -->
+    <div id="loginModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4">
+        <div class="bg-chalkBoard rounded-2xl p-6 max-w-md w-full shadow-2xl border border-emerald-700 space-y-4">
+            <h3 class="text-xl font-bold text-amber-300 text-center">Đăng Nhập Tài Khoản Class 7/1</h3>
+            <form id="loginForm" class="space-y-3">
+                <div>
+                    <label class="block text-xs text-emerald-200 font-bold mb-1">Chọn Chức Danh</label>
+                    <select id="roleSelect" class="w-full bg-chalkSoft text-white text-xs font-bold p-2.5 rounded-xl border border-emerald-600 focus:outline-none"></select>
+                </div>
+                <div>
+                    <label class="block text-xs text-emerald-200 font-bold mb-1">Mật Khẩu (Mặc định: 1234)</label>
+                    <input type="password" id="passwordInput" placeholder="Nhập mật khẩu..." required class="w-full bg-chalkSoft text-white text-xs font-bold p-2.5 rounded-xl border border-emerald-600 focus:outline-none">
+                </div>
+                <p id="loginError" class="text-xs text-rose-400 font-bold hidden text-center">Mật khẩu không chính xác!</p>
+                <div class="flex gap-2 pt-2">
+                    <button type="button" id="closeLoginBtn" class="flex-1 py-2 rounded-xl bg-emerald-900/60 text-emerald-200 font-bold text-xs border border-emerald-700">Hủy</button>
+                    <button type="submit" class="flex-1 py-2 rounded-xl bg-amber-400 text-slate-950 font-bold text-xs">Đăng Nhập</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL ĐỔI TÊN & MẬT KHẨU CÁ NHÂN -->
+    <div id="profileModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4">
+        <div class="bg-chalkBoard rounded-2xl p-6 max-w-sm w-full shadow-2xl border border-amber-500/40 space-y-4">
+            <h3 class="text-lg font-bold text-amber-300 text-center">Đổi Tên & Mật Khẩu Cá Nhân</h3>
+            <form id="profileForm" class="space-y-3">
+                <div>
+                    <label class="block text-xs font-bold text-emerald-200 mb-1">Tên Cá Nhân Của Bạn</label>
+                    <input type="text" id="customNameInput" placeholder="Nhập tên thật của bạn..." required class="w-full bg-chalkSoft text-white text-xs p-2.5 rounded-lg border border-emerald-600">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-emerald-200 mb-1">Mật Khẩu Mới (Tối thiểu 4 ký tự)</label>
+                    <input type="password" id="newPassInput" placeholder="Nhập mật khẩu mới..." minlength="4" required class="w-full bg-chalkSoft text-white text-xs p-2.5 rounded-lg border border-emerald-600">
+                </div>
+                <div class="flex gap-2 pt-2">
+                    <button type="button" id="closeProfileBtn" class="flex-1 py-2 rounded-lg bg-emerald-900/60 text-emerald-200 text-xs font-bold">Hủy</button>
+                    <button type="submit" class="flex-1 py-2 rounded-lg bg-amber-400 text-slate-950 text-xs font-bold">Lưu Đồng Bộ</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div id="toastContainer" class="fixed bottom-4 right-4 z-50 space-y-2 pointer-events-none"></div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        const appId = 'thi-dua-lop-71-v3';
+        const firebaseConfig = {
+            apiKey: "AIzaSyCQF4C0DcSce_bNDOBhj6KbsjFnrCJjRXI",
+            authDomain: "planning-with-ai-3f2fe.firebaseapp.com",
+            projectId: "planning-with-ai-3f2fe",
+            storageBucket: "planning-with-ai-3f2fe.firebasestorage.app",
+            messagingSenderId: "384461302475",
+            appId: "1:384461302475:web:c2db4957b0678f0299894e"
+        };
+
+        const ROLES = [
+            { id: "gvcn", title: "Giáo viên chủ nhiệm", group: "admin", canReset: true },
+            { id: "lop_truong", title: "Lớp trưởng", group: "admin", canReset: true },
+            { id: "ky_luat_1", title: "Lớp phó kỷ luật 1", group: "admin", canReset: true },
+            { id: "hoc_tap", title: "Lớp phó học tập", group: "admin", canReset: false },
+            { id: "ky_luat_2", title: "Lớp phó kỷ luật 2", group: "admin", canReset: false },
+            { id: "phong_trao", title: "Lớp phó phong trào", group: "admin", canReset: false },
+            { id: "lao_dong", title: "Lớp phó lao động", group: "admin", canReset: false },
+            { id: "to_1_truong", title: "Tổ trưởng Tổ 1", group: "reporter", toId: 1 },
+            { id: "to_1_pho", title: "Tổ phó Tổ 1", group: "reporter", toId: 1 },
+            { id: "to_2_truong", title: "Tổ trưởng Tổ 2", group: "reporter", toId: 2 },
+            { id: "to_2_pho", title: "Tổ phó Tổ 2", group: "reporter", toId: 2 },
+            { id: "to_3_truong", title: "Tổ trưởng Tổ 3", group: "reporter", toId: 3 },
+            { id: "to_3_pho", title: "Tổ phó Tổ 3", group: "reporter", toId: 3 },
+            { id: "to_4_truong", title: "Tổ trưởng Tổ 4", group: "reporter", toId: 4 },
+            { id: "to_4_pho", title: "Tổ phó Tổ 4", group: "reporter", toId: 4 },
+        ];
+
+        const DEFAULT_TEAMS = [
+            { id: 1, label: "Tổ 1", color: "#FBC02D", bgClass: "bg-amber-400", textClass: "text-amber-400", steps: 100, icon: "🦆" },
+            { id: 2, label: "Tổ 2", color: "#EC4899", bgClass: "bg-pink-500", textClass: "text-pink-400", steps: 100, icon: "🐥" },
+            { id: 3, label: "Tổ 3", color: "#38BDF8", bgClass: "bg-sky-400", textClass: "text-sky-400", steps: 100, icon: "🦢" },
+            { id: 4, label: "Tổ 4", color: "#C084FC", bgClass: "bg-purple-400", textClass: "text-purple-400", steps: 100, icon: "🦩" },
+        ];
+
+        let state = {
+            teams: DEFAULT_TEAMS,
+            history: [],
+            announcements: [],
+            reports: {}, // { roleId: { text, authorName, time } }
+            accounts: {}, // { roleId: { name, password } }
+            currentUser: JSON.parse(localStorage.getItem('CLASS_AUTH_SESSION') || 'null'),
+            user: null
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+        const docRef = doc(db, 'public_duck_races', appId);
+
+        signInAnonymously(auth);
+        onAuthStateChanged(auth, (u) => { if (u) { state.user = u; subscribeState(); } });
+
+        function subscribeState() {
+            onSnapshot(docRef, (snap) => {
+                if (snap.exists()) {
+                    const d = snap.data();
+                    if (d.teams) state.teams = d.teams;
+                    if (d.history) state.history = d.history;
+                    if (d.announcements) state.announcements = d.announcements;
+                    if (d.reports) state.reports = d.reports;
+                    if (d.accounts) state.accounts = d.accounts;
+
+                    // Khởi tạo tài khoản mặc định nếu chưa có
+                    ROLES.forEach(r => {
+                        if (!state.accounts[r.id]) {
+                            state.accounts[r.id] = { name: r.title, password: "1234" };
+                        }
+                    });
+
+                    // Cập nhật session tên mới nhất
+                    if (state.currentUser && state.accounts[state.currentUser.roleId]) {
+                        state.currentUser.name = state.accounts[state.currentUser.roleId].name;
+                        localStorage.setItem('CLASS_AUTH_SESSION', JSON.stringify(state.currentUser));
+                    }
+                    render();
+                } else {
+                    saveDb();
+                }
+            });
+        }
+
+        async function saveDb() {
+            if (!state.user) return;
+            await setDoc(docRef, {
+                teams: state.teams,
+                history: state.history,
+                announcements: state.announcements,
+                reports: state.reports,
+                accounts: state.accounts
+            }, { merge: true });
+        }
+
+        function render() {
+            renderCards();
+            renderTracks();
+            renderReports();
+            renderAnnouncements();
+            renderHistory();
+            renderAdminPanel();
+            updateAuthUI();
+        }
+
+        function updateAuthUI() {
+            const btnText = document.getElementById('authBtnText');
+            const icon = document.getElementById('authLockIcon');
+            const tag = document.getElementById('userStatusTag');
+
+            if (state.currentUser) {
+                const roleObj = ROLES.find(r => r.id === state.currentUser.roleId);
+                btnText.textContent = ` ${state.currentUser.name}`;
+                icon.className = "fa-solid fa-unlock";
+                tag.textContent = `${state.currentUser.name} (${roleObj.title})`;
+                tag.className = "text-xs font-bold mt-0.5 text-emerald-400";
+            } else {
+                btnText.textContent = " Đăng Nhập";
+                icon.className = "fa-solid fa-lock";
+                tag.textContent = "Chế Độ Người Xem";
+                tag.className = "text-xs font-bold mt-0.5 text-amber-300";
+            }
+        }
+
+        function renderCards() {
+            const container = document.getElementById('cardsGrid');
+            const sorted = [...state.teams].sort((a, b) => b.steps - a.steps);
+            container.innerHTML = state.teams.map(t => {
+                const rank = sorted.findIndex(s => s.id === t.id) + 1;
+                return `
+                    <div class="bg-chalkBoard rounded-2xl p-4 border border-emerald-800 shadow-md">
+                        <div class="flex justify-between items-center mb-2">
+                            <span class="text-3xl">${t.icon}</span>
+                            <span class="text-xs font-bold px-2 py-0.5 rounded ${t.bgClass} text-slate-950">#${rank}</span>
+                        </div>
+                        <h4 class="font-bold text-white text-base">${t.label}</h4>
+                        <div class="flex items-baseline gap-1 mt-1">
+                            <span class="text-3xl font-bold ${t.textClass}">${t.steps}</span>
+                            <span class="text-xs text-emerald-400 font-bold">bước</span>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function renderTracks() {
+            const container = document.getElementById('tracksContainer');
+            const maxSteps = Math.max(...state.teams.map(t => t.steps), 100);
+            const trackMax = Math.ceil((maxSteps + 30) / 10) * 10;
+            container.innerHTML = state.teams.map(t => {
+                const pct = Math.min(100, Math.max(0, (t.steps / trackMax) * 100));
+                return `
+                    <div class="space-y-1">
+                        <div class="flex justify-between text-xs font-bold px-1">
+                            <span class="text-emerald-200">${t.label} (${t.icon})</span>
+                            <span class="${t.textClass} font-mono">${t.steps} Bước</span>
+                        </div>
+                        <div class="relative h-14 bg-chalkSoft/60 rounded-xl border border-emerald-700/60 flex items-center px-4 overflow-hidden">
+                            <div class="duck-lane absolute top-1/2 -translate-y-1/2 flex items-center z-10" style="left: calc(${pct}% - 22px);">
+                                <div class="text-3xl sm:text-4xl animate-waddle">${t.icon}</div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // RENDER 8 Ô BÁO CÁO CỦA TỔ TRƯỞNG & TỔ PHÓ
+        function renderReports() {
+            const section = document.getElementById('reportSection');
+            const grid = document.getElementById('reportsGrid');
+
+            if (!state.currentUser) {
+                section.classList.add('hidden');
+                return;
+            }
+            section.classList.remove('hidden');
+
+            const reporterRoles = ROLES.filter(r => r.group === 'reporter');
+            grid.innerHTML = reporterRoles.map(r => {
+                const isMyRole = state.currentUser && state.currentUser.roleId === r.id;
+                const reportData = state.reports[r.id] || { text: "", authorName: "", time: "" };
+
+                const canDelete = isMyRole && reportData.text;
+                const canEdit = isMyRole;
+
+                return `
+                    <div class="bg-chalkSoft/40 border ${isMyRole ? 'border-amber-400' : 'border-emerald-800'} rounded-xl p-3 flex flex-col justify-between space-y-2 text-xs">
+                        <div class="flex justify-between items-center border-b border-emerald-800/60 pb-1.5">
+                            <span class="font-bold ${isMyRole ? 'text-amber-300' : 'text-emerald-200'}">${r.title}</span>
+                            ${canDelete ? `<button onclick="clearReport('${r.id}')" class="text-rose-400 hover:text-rose-300 font-bold" title="Xóa báo cáo của bạn">Xóa</button>` : ''}
+                        </div>
+                        
+                        <div class="min-h-[50px] text-white">
+                            ${reportData.text ? `
+                                <p class="italic text-slate-200">"${reportData.text}"</p>
+                                <div class="text-[10px] text-emerald-400 mt-1 font-mono">- ${reportData.authorName} (${reportData.time})</div>
+                            ` : `<p class="text-emerald-500/60 italic text-center py-2">Chưa có báo cáo</p>`}
+                        </div>
+
+                        ${canEdit ? `
+                            <div class="space-y-1.5 pt-1 border-t border-emerald-800/40">
+                                <input type="text" id="reportInput-${r.id}" placeholder="Nhập báo cáo tổ..." value="${reportData.text}" class="w-full bg-slate-900 border border-emerald-700 text-white rounded p-1.5 text-xs">
+                                <button onclick="submitReport('${r.id}')" class="w-full bg-amber-400 text-slate-950 font-bold py-1 rounded text-xs hover:bg-amber-300">Gửi Báo Cáo</button>
+                            </div>
+                        ` : ''}
+                    </div>
+                `;
+            }).join('');
+        }
+
+        window.submitReport = function(roleId) {
+            const input = document.getElementById(`reportInput-${roleId}`);
+            const text = input.value.trim();
+            if (!text) return showToast("Vui lòng nhập nội dung!", "error");
+
+            state.reports[roleId] = {
+                text: text,
+                authorName: state.currentUser.name,
+                time: new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })
+            };
+            saveDb();
+            showToast("Đã cập nhật báo cáo thành công!");
+        };
+
+        window.clearReport = function(roleId) {
+            if (state.currentUser.roleId !== roleId) return showToast("Bạn chỉ có thể xóa báo cáo của chính mình!", "error");
+            delete state.reports[roleId];
+            saveDb();
+            showToast("Đã xóa báo cáo!");
+        };
+
+        function renderAnnouncements() {
+            const container = document.getElementById('announcementContainer');
+            const form = document.getElementById('adminAnnouncementForm');
+            const roleObj = state.currentUser ? ROLES.find(r => r.id === state.currentUser.roleId) : null;
+
+            if (roleObj && roleObj.group === 'admin') form.classList.remove('hidden');
+            else form.classList.add('hidden');
+
+            if (!state.announcements.length) {
+                container.innerHTML = `<p class="text-xs text-emerald-400/80 italic text-center py-2">Chưa có thông báo nào.</p>`;
+                return;
+            }
+
+            container.innerHTML = state.announcements.map(a => {
+                const isMine = state.currentUser && state.currentUser.roleId === a.roleId;
+                return `
+                    <div class="bg-amber-500/10 border border-amber-500/30 rounded-xl p-3 flex justify-between gap-3 text-xs">
+                        <div>
+                            <div class="flex items-center gap-2">
+                                <span class="bg-amber-400 text-slate-950 font-bold px-1.5 py-0.5 rounded text-[10px]">${a.authorName}</span>
+                                <span class="text-emerald-400 font-mono text-[11px]">${a.time}</span>
+                            </div>
+                            <p class="text-white font-medium text-sm mt-1">${a.content}</p>
+                        </div>
+                        ${isMine ? `<button onclick="deleteNotice('${a.id}')" class="text-rose-400 font-bold hover:text-rose-300">Xóa</button>` : ''}
+                    </div>
+                `;
+            }).join('');
+        }
+
+        window.deleteNotice = function(id) {
+            const item = state.announcements.find(a => a.id === id);
+            if (!item || item.roleId !== state.currentUser.roleId) return showToast("Bạn chỉ xóa được thông báo của chính mình!", "error");
+            state.announcements = state.announcements.filter(a => a.id !== id);
+            saveDb();
+            showToast("Đã xóa thông báo!");
+        };
+
+        function renderHistory() {
+            const container = document.getElementById('historyContainer');
+            if (!state.history.length) {
+                container.innerHTML = `<p class="text-xs text-emerald-400/80 italic text-center py-2">Chưa có lịch sử thay đổi.</p>`;
+                return;
+            }
+
+            container.innerHTML = state.history.map(h => {
+                const isMine = state.currentUser && state.currentUser.roleId === h.roleId;
+                const isPos = h.delta >= 0;
+                return `
+                    <div class="bg-chalkSoft/40 border border-emerald-800/60 rounded-xl p-3 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 text-xs">
+                        <div class="flex items-center space-x-2">
+                            <span class="text-emerald-400 font-mono text-[11px] bg-chalkBoard px-2 py-0.5 rounded">${h.time}</span>
+                            <span class="font-bold text-amber-300">[${h.authorName}]</span>
+                            <span class="font-bold text-white">${h.teamIcon} ${h.teamLabel}</span>
+                            <span class="px-2 py-0.5 rounded font-bold ${isPos ? 'bg-emerald-500/20 text-emerald-300' : 'bg-rose-500/20 text-rose-300'}">${isPos ? '+' : ''}${h.delta} bước</span>
+                        </div>
+                        <div class="text-emerald-200 flex items-center gap-2">
+                            <span>Lý do: <strong>${h.reason}</strong></span>
+                            ${isMine ? `<button onclick="deleteHistoryItem('${h.id}')" class="text-rose-400 font-bold hover:text-rose-300 ml-2">Xóa</button>` : ''}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        window.deleteHistoryItem = function(id) {
+            const item = state.history.find(h => h.id === id);
+            if (!item || item.roleId !== state.currentUser.roleId) return showToast("Bạn chỉ xóa được lịch sử do chính mình thực hiện!", "error");
+            state.history = state.history.filter(h => h.id !== id);
+            saveDb();
+            showToast("Đã xóa lịch sử!");
+        };
+
+        function renderAdminPanel() {
+            const panel = document.getElementById('adminPanel');
+            const grid = document.getElementById('adminControlsGrid');
+            const resetBtn = document.getElementById('resetAllBtn');
+            const subtitle = document.getElementById('userProfileSubtitle');
+
+            if (!state.currentUser) { panel.classList.add('hidden'); return; }
+            panel.classList.remove('hidden');
+
+            const roleObj = ROLES.find(r => r.id === state.currentUser.roleId);
+            subtitle.textContent = `Tài khoản: ${state.currentUser.name} (${roleObj.title})`;
+
+            if (roleObj.canReset) resetBtn.classList.remove('hidden');
+            else resetBtn.classList.add('hidden');
+
+            if (roleObj.group !== 'admin') {
+                grid.innerHTML = `<p class="text-xs text-amber-300 col-span-2 text-center py-2">Bạn đang đăng nhập quyền Tổ trưởng/Tổ phó. Vui lòng nhập báo cáo tại khu vực 8 Ô phía trên.</p>`;
+                return;
+            }
+
+            grid.innerHTML = state.teams.map(t => `
+                <div class="bg-slate-950 rounded-xl p-4 border border-slate-800 space-y-3">
+                    <div class="flex justify-between items-center border-b border-slate-800 pb-2">
+                        <span class="font-bold text-white">${t.icon} ${t.label}</span>
+                        <span class="font-bold text-amber-300 font-mono">${t.steps} bước</span>
+                    </div>
+                    <div class="flex gap-2">
+                        <input type="number" id="deltaInput-${t.id}" placeholder="Số bước..." class="w-1/3 bg-slate-900 border border-slate-700 text-white text-xs rounded p-2">
+                        <input type="text" id="reasonInput-${t.id}" placeholder="Lý do cộng/trừ..." class="w-2/3 bg-slate-900 border border-slate-700 text-white text-xs rounded p-2">
+                    </div>
+                    <div class="flex gap-2">
+                        <button onclick="addSteps(${t.id}, false)" class="flex-1 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded text-xs font-bold">+ Cộng Điểm</button>
+                        <button onclick="addSteps(${t.id}, true)" class="flex-1 py-2 bg-rose-600 hover:bg-rose-500 text-white rounded text-xs font-bold">- Trừ Điểm</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        window.addSteps = function(teamId, isSubtract) {
+            const input = document.getElementById(`deltaInput-${teamId}`);
+            const reasonInput = document.getElementById(`reasonInput-${teamId}`);
+            let val = parseInt(input.value, 10);
+            if (isNaN(val) || val === 0) return showToast("Nhập số bước hợp lệ!", "error");
+            if (isSubtract) val = -Math.abs(val);
+
+            const t = state.teams.find(item => item.id === teamId);
+            t.steps = Math.max(0, t.steps + val);
+
+            const timeStr = new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+            state.history.unshift({
+                id: Math.random().toString(36).substring(2, 9),
+                roleId: state.currentUser.roleId,
+                authorName: state.currentUser.name,
+                time: timeStr,
+                teamLabel: t.label,
+                teamIcon: t.icon,
+                delta: val,
+                reason: reasonInput.value.trim() || (val > 0 ? "Cộng điểm thi đua" : "Trừ điểm thi đua")
+            });
+
+            saveDb();
+            input.value = ''; reasonInput.value = '';
+            showToast(`Đã ${val > 0 ? 'cộng' : 'trừ'} điểm thành công!`);
+        };
+
+        // GỬI THÔNG BÁO
+        document.getElementById('sendNoticeForm').addEventListener('submit', (e) => {
+            e.preventDefault();
+            const input = document.getElementById('noticeInput');
+            const val = input.value.trim();
+            if (!val) return;
+
+            state.announcements.unshift({
+                id: Math.random().toString(36).substring(2, 9),
+                roleId: state.currentUser.roleId,
+                authorName: state.currentUser.name,
+                time: new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }),
+                content: val
+            });
+            saveDb();
+            input.value = '';
+            showToast("Đã gửi thông báo mới!");
+        });
+
+        // XỬ LÝ ĐĂNG NHẬP & ĐỔI TÊN
+        const loginModal = document.getElementById('loginModal');
+        const profileModal = document.getElementById('profileModal');
+        const roleSelect = document.getElementById('roleSelect');
+
+        document.getElementById('authBtn').addEventListener('click', () => {
+            if (state.currentUser) return;
+            roleSelect.innerHTML = ROLES.map(r => `<option value="${r.id}">${r.title} (${state.accounts[r.id]?.name || r.title})</option>`).join('');
+            loginModal.classList.remove('hidden');
+        });
+
+        document.getElementById('closeLoginBtn').addEventListener('click', () => loginModal.classList.add('hidden'));
+
+        document.getElementById('loginForm').addEventListener('submit', (e) => {
+            e.preventDefault();
+            const rId = roleSelect.value;
+            const pass = document.getElementById('passwordInput').value.trim();
+            const acc = state.accounts[rId];
+
+            if (acc && acc.password === pass) {
+                state.currentUser = { roleId: rId, name: acc.name };
+                localStorage.setItem('CLASS_AUTH_SESSION', JSON.stringify(state.currentUser));
+                loginModal.classList.add('hidden');
+                render();
+                showToast(`Chào mừng ${acc.name}!`);
+            } else {
+                document.getElementById('loginError').classList.remove('hidden');
+            }
+        });
+
+        document.getElementById('logoutBtn').addEventListener('click', () => {
+            state.currentUser = null;
+            localStorage.removeItem('CLASS_AUTH_SESSION');
+            render();
+            showToast("Đã đăng xuất!");
+        });
+
+        document.getElementById('profileEditBtn').addEventListener('click', () => {
+            document.getElementById('customNameInput').value = state.currentUser.name;
+            document.getElementById('newPassInput').value = state.accounts[state.currentUser.roleId].password;
+            profileModal.classList.remove('hidden');
+        });
+
+        document.getElementById('closeProfileBtn').addEventListener('click', () => profileModal.classList.add('hidden'));
+
+        document.getElementById('profileForm').addEventListener('submit', (e) => {
+            e.preventDefault();
+            const newName = document.getElementById('customNameInput').value.trim();
+            const newPass = document.getElementById('newPassInput').value.trim();
+
+            state.accounts[state.currentUser.roleId] = { name: newName, password: newPass };
+            state.currentUser.name = newName;
+            localStorage.setItem('CLASS_AUTH_SESSION', JSON.stringify(state.currentUser));
+
+            saveDb();
+            profileModal.classList.add('hidden');
+            showToast("Đã đổi tên & mật khẩu đồng bộ thành công!");
+        });
+
+        document.getElementById('resetAllBtn').addEventListener('click', () => {
+            if (confirm("Reset tất cả về 100 bước?")) {
+                state.teams = state.teams.map(t => ({ ...t, steps: 100 }));
+                saveDb();
+                showToast("Đã đặt lại 100 bước!");
+            }
+        });
+
+        window.showToast = function(msg, type = 'success') {
+            const container = document.getElementById('toastContainer');
+            const toast = document.createElement('div');
+            toast.className = `pointer-events-auto px-4 py-2.5 rounded-xl text-xs font-bold text-white shadow-xl ${type === 'error' ? 'bg-rose-600' : 'bg-emerald-600'}`;
+            toast.textContent = msg;
+            container.appendChild(toast);
+            setTimeout(() => toast.remove(), 3000);
+        };
+    </script>
+</body>
+</html>
