@@ -111,7 +111,7 @@
                         <i class="fa-solid fa-user-pen"></i> Đổi Tên / Mật Khẩu
                     </button>
                     <button id="resetAllBtn" class="hidden px-3 py-1.5 rounded-lg bg-rose-500/20 text-rose-300 hover:bg-rose-500/30 text-xs font-bold border border-rose-500/40">
-                        <i class="fa-solid fa-rotate-left"></i> Đặt Lại 100 Điểm (GVCN/LT/Kỷ Luật 1)
+                        <i class="fa-solid fa-rotate-left"></i> Đặt Lại 100 Điểm
                     </button>
                     <button id="logoutBtn" class="px-3 py-1.5 rounded-lg bg-slate-800 text-slate-300 hover:bg-slate-700 text-xs font-bold border border-slate-700">Thoát</button>
                 </div>
@@ -199,6 +199,8 @@
             { id: "to_4_truong", title: "Tổ trưởng Tổ 4", group: "reporter" },
             { id: "to_4_pho", title: "Tổ phó Tổ 4", group: "reporter" },
         ];
+
+        const SUPER_ADMINS = ['gvcn', 'lop_truong', 'ky_luat_1'];
 
         const iconsList = ["🦆", "🐥", "🦢", "🦩"];
         const palette = ["#FBC02D", "#EC4899", "#38BDF8", "#C084FC", "#34D399", "#F87171", "#818CF8", "#F472B6", "#4ADE80", "#FBBF24"];
@@ -384,32 +386,51 @@
                 return;
             }
 
+            const isSuperAdmin = state.currentUser && SUPER_ADMINS.includes(state.currentUser.roleId);
+
             container.innerHTML = state.history.map(h => {
                 const isMine = state.currentUser && state.currentUser.roleId === h.roleId;
+                const canDelete = isSuperAdmin || isMine;
                 const isPos = h.delta >= 0;
+
                 return `
                     <div class="bg-chalkSoft/40 border border-emerald-800/60 rounded-xl p-3 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 text-xs">
                         <div class="flex items-center space-x-2">
                             <span class="text-emerald-400 font-mono text-[11px] bg-chalkBoard px-2 py-0.5 rounded">${h.time}</span>
                             <span class="font-bold text-amber-300">[${h.authorName}]</span>
-                            <span class="font-bold text-white">${h.teamIcon} ${h.teamLabel}</span>
+                            <span class="font-bold text-white">${h.teamIcon || ''} ${h.teamLabel}</span>
                             <span class="px-2 py-0.5 rounded font-bold ${isPos ? 'bg-emerald-500/20 text-emerald-300' : 'bg-rose-500/20 text-rose-300'}">${isPos ? '+' : ''}${h.delta} điểm</span>
                         </div>
                         <div class="text-emerald-200 flex items-center gap-2">
                             <span>Lý do: <strong>${h.reason}</strong></span>
-                            ${isMine ? `<button onclick="deleteHistoryItem('${h.id}')" class="text-rose-400 font-bold hover:text-rose-300 ml-2">Xóa</button>` : ''}
+                            ${canDelete ? `<button onclick="deleteHistoryItem('${h.id}')" class="text-rose-400 font-bold hover:text-rose-300 ml-2">Xóa</button>` : ''}
                         </div>
                     </div>
                 `;
             }).join('');
         }
 
+        // XÓA LỊCH SỬ ➔ TỰ ĐỘNG HOÀN ĐIỂM HỌC SINH
         window.deleteHistoryItem = function(id) {
             const item = state.history.find(h => h.id === id);
-            if (!item || item.roleId !== state.currentUser.roleId) return showToast("Bạn chỉ xóa được lịch sử do mình tạo!", "error");
+            if (!item) return;
+
+            const isSuperAdmin = state.currentUser && SUPER_ADMINS.includes(state.currentUser.roleId);
+            const isMine = state.currentUser && state.currentUser.roleId === item.roleId;
+
+            if (!isSuperAdmin && !isMine) {
+                return showToast("Bạn không có quyền xóa lịch sử này!", "error");
+            }
+
+            // Hoàn lại điểm
+            const t = state.teams.find(team => team.id === item.teamId);
+            if (t) {
+                t.steps = Math.max(0, t.steps - item.delta);
+            }
+
             state.history = state.history.filter(h => h.id !== id);
             saveDb();
-            showToast("Đã xóa lịch sử!");
+            showToast(`Đã xóa lịch sử & hoàn lại ${item.delta > 0 ? '-' : '+'}${Math.abs(item.delta)} điểm!`);
         };
 
         function renderAdminPanel() {
@@ -478,6 +499,7 @@
             const timeStr = new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
             state.history.unshift({
                 id: Math.random().toString(36).substring(2, 9),
+                teamId: teamId,
                 roleId: state.currentUser.roleId,
                 authorName: state.currentUser.name,
                 time: timeStr,
