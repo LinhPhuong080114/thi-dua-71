@@ -43,8 +43,11 @@
                 <h1 class="text-xl sm:text-2xl font-bold text-amber-300">THI ĐUA LỚP 7/1</h1>
             </div>
             <div class="flex items-center gap-2">
+                <button id="shareBtn" class="flex items-center space-x-1.5 px-3 py-1.5 rounded-lg bg-emerald-900/80 text-emerald-200 hover:bg-emerald-800 border border-emerald-700 text-xs font-bold transition shadow">
+                    <i class="fa-solid fa-share-nodes"></i><span>Chia Sẻ Link</span>
+                </button>
                 <span id="currentUserBadge" class="hidden bg-amber-400 text-slate-950 text-xs px-3 py-1 rounded-full font-bold shadow"></span>
-                <span class="bg-emerald-900 text-emerald-200 text-xs px-3 py-1 rounded-full font-bold border border-emerald-700">Năm Học 2026 - 2027</span>
+                <span class="bg-emerald-900 text-emerald-200 text-xs px-3 py-1 rounded-full font-bold border border-emerald-700 hidden sm:inline-block">Năm Học 2026 - 2027</span>
             </div>
         </div>
     </header>
@@ -92,12 +95,31 @@
         Bảng Thi Đua Lớp 7/1 © 2026 - 2027
     </footer>
 
+    <div id="toastContainer" class="fixed bottom-4 right-4 z-50 space-y-2 pointer-events-none"></div>
+
     <script>
         const session = JSON.parse(localStorage.getItem('CLASS_AUTH_SESSION') || 'null');
         if (session && session.roleId) {
             const badge = document.getElementById('currentUserBadge');
             badge.textContent = `🔑 ${session.name || session.roleTitle}`;
             badge.classList.remove('hidden');
+        }
+
+        document.getElementById('shareBtn').addEventListener('click', () => {
+            navigator.clipboard.writeText(window.location.href).then(() => {
+                showToast("Đã sao chép link trang chủ!");
+            }).catch(() => {
+                showToast("Không thể sao chép link!", "error");
+            });
+        });
+
+        function showToast(msg, type = 'success') {
+            const container = document.getElementById('toastContainer');
+            const toast = document.createElement('div');
+            toast.className = `pointer-events-auto px-4 py-2.5 rounded-xl text-xs font-bold text-white shadow-xl ${type === 'error' ? 'bg-rose-600' : 'bg-emerald-600'}`;
+            toast.textContent = msg;
+            container.appendChild(toast);
+            setTimeout(() => toast.remove(), 3000);
         }
     </script>
 </body>
