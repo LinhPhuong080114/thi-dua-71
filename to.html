@@ -48,9 +48,6 @@
             </div>
 
             <div class="flex items-center space-x-2">
-                <button id="shareBtn" class="flex items-center space-x-1.5 px-3 py-1.5 rounded-lg bg-emerald-900/80 text-emerald-200 hover:bg-emerald-800 border border-emerald-700 text-xs font-bold transition">
-                    <i class="fa-solid fa-share-nodes"></i><span class="hidden sm:inline">Chia Sẻ</span>
-                </button>
                 <button id="authBtn" class="flex items-center space-x-1.5 px-3.5 py-1.5 rounded-lg text-xs font-bold transition bg-amber-500 text-slate-950 hover:bg-amber-400 shadow">
                     <i class="fa-solid fa-lock" id="authLockIcon"></i><span id="authBtnText"> Đăng Nhập</span>
                 </button>
@@ -82,15 +79,15 @@
             </div>
         </section>
 
-        <!-- KHU VỰC BÁO CÁO 8 Ô DÀNH CHO TỔ TRƯỞNG / TỔ PHÓ & BAN CÁN SỰ -->
+        <!-- KHU VỰC BÁO CÁO 4 Ô CHO 4 TỔ (MỖI Ô LƯU NHIỀU NỘI DUNG) -->
         <section id="reportSection" class="bg-chalkBoard rounded-2xl p-4 sm:p-6 shadow-xl border border-emerald-800 space-y-4">
             <div class="flex items-center justify-between border-b border-emerald-800/80 pb-3">
                 <h3 class="text-lg font-bold text-amber-300 flex items-center gap-2">
-                    <i class="fa-solid fa-clipboard-list"></i> Báo Cáo Thi Đua 8 Chức Danh (Tổ Trưởng & Tổ Phó)
+                    <i class="fa-solid fa-clipboard-list"></i> Báo Cáo Thi Đua 4 Tổ (Tổ Trưởng & Tổ Phó)
                 </h3>
                 <span class="text-xs text-emerald-300 italic">Chỉ Ban cán sự & Tổ trưởng/Tổ phó xem được</span>
             </div>
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4" id="reportsGrid"></div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4" id="reportsGrid"></div>
         </section>
 
         <!-- THÔNG BÁO CHUNG -->
@@ -115,7 +112,7 @@
             <div class="max-h-60 overflow-y-auto space-y-2 pr-2" id="historyContainer"></div>
         </section>
 
-        <!-- BẢNG ĐIỀU KHUYỂN QUẢN TRỊ (CHỈ HIỂN THỊ KHI ĐĂNG NHẬP BAN CÁN SỰ) -->
+        <!-- BẢNG ĐIỀU KHUYỂN QUẢN TRỊ -->
         <section id="adminPanel" class="hidden bg-slate-900 rounded-2xl p-5 sm:p-6 text-white shadow-2xl space-y-6 border border-amber-500/30">
             <div class="flex flex-wrap items-center justify-between gap-4 border-b border-slate-800 pb-4">
                 <div>
@@ -129,7 +126,7 @@
                         <i class="fa-solid fa-user-pen"></i> Đổi Tên / Mật Khẩu
                     </button>
                     <button id="resetAllBtn" class="hidden px-3 py-1.5 rounded-lg bg-rose-500/20 text-rose-300 hover:bg-rose-500/30 text-xs font-bold border border-rose-500/40">
-                        <i class="fa-solid fa-rotate-left"></i> Đặt Lại 100 Bước (GVCN/LT/Kỷ Luật 1)
+                        <i class="fa-solid fa-rotate-left"></i> Đặt Lại 100 Bước
                     </button>
                     <button id="logoutBtn" class="px-3 py-1.5 rounded-lg bg-slate-800 text-slate-300 hover:bg-slate-700 text-xs font-bold border border-slate-700">Thoát</button>
                 </div>
@@ -216,6 +213,8 @@
             { id: "to_4_pho", title: "Tổ phó Tổ 4", group: "reporter", toId: 4 },
         ];
 
+        const SUPER_ADMINS = ['gvcn', 'lop_truong', 'ky_luat_1'];
+
         const DEFAULT_TEAMS = [
             { id: 1, label: "Tổ 1", color: "#FBC02D", bgClass: "bg-amber-400", textClass: "text-amber-400", steps: 100, icon: "🦆" },
             { id: 2, label: "Tổ 2", color: "#EC4899", bgClass: "bg-pink-500", textClass: "text-pink-400", steps: 100, icon: "🐥" },
@@ -227,8 +226,8 @@
             teams: DEFAULT_TEAMS,
             history: [],
             announcements: [],
-            reports: {}, // { roleId: { text, authorName, time } }
-            accounts: {}, // { roleId: { name, password } }
+            teamReports: { 1: [], 2: [], 3: [], 4: [] }, // Danh sách báo cáo theo từng Tổ
+            accounts: {},
             currentUser: JSON.parse(localStorage.getItem('CLASS_AUTH_SESSION') || 'null'),
             user: null
         };
@@ -248,17 +247,15 @@
                     if (d.teams) state.teams = d.teams;
                     if (d.history) state.history = d.history;
                     if (d.announcements) state.announcements = d.announcements;
-                    if (d.reports) state.reports = d.reports;
-                    if (d.accounts) state.accounts = d.accounts;
+                    if (d.teamReports) state.teamReports = d.teamReports;
+                    if (!state.teamReports[1]) state.teamReports = { 1: [], 2: [], 3: [], 4: [] };
 
-                    // Khởi tạo tài khoản mặc định nếu chưa có
                     ROLES.forEach(r => {
                         if (!state.accounts[r.id]) {
                             state.accounts[r.id] = { name: r.title, password: "1234" };
                         }
                     });
 
-                    // Cập nhật session tên mới nhất
                     if (state.currentUser && state.accounts[state.currentUser.roleId]) {
                         state.currentUser.name = state.accounts[state.currentUser.roleId].name;
                         localStorage.setItem('CLASS_AUTH_SESSION', JSON.stringify(state.currentUser));
@@ -276,7 +273,7 @@
                 teams: state.teams,
                 history: state.history,
                 announcements: state.announcements,
-                reports: state.reports,
+                teamReports: state.teamReports,
                 accounts: state.accounts
             }, { merge: true });
         }
@@ -353,7 +350,7 @@
             }).join('');
         }
 
-        // RENDER 8 Ô BÁO CÁO CỦA TỔ TRƯỞNG & TỔ PHÓ
+        // RENDER 4 Ô BÁO CÁO GỘP (MỖI TỔ 1 Ô)
         function renderReports() {
             const section = document.getElementById('reportSection');
             const grid = document.getElementById('reportsGrid');
@@ -364,32 +361,46 @@
             }
             section.classList.remove('hidden');
 
-            const reporterRoles = ROLES.filter(r => r.group === 'reporter');
-            grid.innerHTML = reporterRoles.map(r => {
-                const isMyRole = state.currentUser && state.currentUser.roleId === r.id;
-                const reportData = state.reports[r.id] || { text: "", authorName: "", time: "" };
+            const currentRole = ROLES.find(r => r.id === state.currentUser.roleId);
 
-                const canDelete = isMyRole && reportData.text;
-                const canEdit = isMyRole;
+            grid.innerHTML = [1, 2, 3, 4].map(toId => {
+                const teamObj = state.teams.find(t => t.id === toId);
+                const reportsList = state.teamReports[toId] || [];
+                const canAdd = currentRole && (currentRole.group === 'admin' || currentRole.toId === toId);
+
+                const listHtml = reportsList.length ? reportsList.map(r => {
+                    const isMyReport = state.currentUser && state.currentUser.roleId === r.roleId;
+                    return `
+                        <div class="bg-chalkBoard/80 border border-emerald-700/60 rounded-lg p-2 text-xs space-y-1">
+                            <div class="flex justify-between items-center">
+                                <span class="font-bold text-amber-300 text-[11px]">${r.authorName} (${r.roleTitle})</span>
+                                <div class="flex items-center gap-2">
+                                    <span class="text-emerald-400 font-mono text-[10px]">${r.time}</span>
+                                    ${isMyReport ? `<button onclick="deleteReportItem(${toId}, '${r.id}')" class="text-rose-400 font-bold hover:text-rose-300 text-[10px]">Xóa</button>` : ''}
+                                </div>
+                            </div>
+                            <p class="text-white text-xs italic">"${r.text}"</p>
+                        </div>
+                    `;
+                }).join('') : `<p class="text-emerald-500/60 italic text-center py-4">Chưa có báo cáo nào cho ${teamObj.label}</p>`;
 
                 return `
-                    <div class="bg-chalkSoft/40 border ${isMyRole ? 'border-amber-400' : 'border-emerald-800'} rounded-xl p-3 flex flex-col justify-between space-y-2 text-xs">
-                        <div class="flex justify-between items-center border-b border-emerald-800/60 pb-1.5">
-                            <span class="font-bold ${isMyRole ? 'text-amber-300' : 'text-emerald-200'}">${r.title}</span>
-                            ${canDelete ? `<button onclick="clearReport('${r.id}')" class="text-rose-400 hover:text-rose-300 font-bold" title="Xóa báo cáo của bạn">Xóa</button>` : ''}
+                    <div class="bg-chalkSoft/40 border border-emerald-800 rounded-2xl p-4 flex flex-col justify-between space-y-3">
+                        <div class="border-b border-emerald-800/80 pb-2 flex justify-between items-center">
+                            <h4 class="font-bold text-amber-300 text-sm flex items-center gap-2">
+                                <span>${teamObj.icon}</span> <span>Báo Cáo ${teamObj.label}</span>
+                            </h4>
+                            <span class="text-[10px] bg-emerald-900 text-emerald-200 px-2 py-0.5 rounded font-bold">${reportsList.length} báo cáo</span>
                         </div>
                         
-                        <div class="min-h-[50px] text-white">
-                            ${reportData.text ? `
-                                <p class="italic text-slate-200">"${reportData.text}"</p>
-                                <div class="text-[10px] text-emerald-400 mt-1 font-mono">- ${reportData.authorName} (${reportData.time})</div>
-                            ` : `<p class="text-emerald-500/60 italic text-center py-2">Chưa có báo cáo</p>`}
+                        <div class="max-h-52 overflow-y-auto space-y-2 pr-1">
+                            ${listHtml}
                         </div>
 
-                        ${canEdit ? `
-                            <div class="space-y-1.5 pt-1 border-t border-emerald-800/40">
-                                <input type="text" id="reportInput-${r.id}" placeholder="Nhập báo cáo tổ..." value="${reportData.text}" class="w-full bg-slate-900 border border-emerald-700 text-white rounded p-1.5 text-xs">
-                                <button onclick="submitReport('${r.id}')" class="w-full bg-amber-400 text-slate-950 font-bold py-1 rounded text-xs hover:bg-amber-300">Gửi Báo Cáo</button>
+                        ${canAdd ? `
+                            <div class="pt-2 border-t border-emerald-800/60 flex gap-2">
+                                <input type="text" id="reportInput-${toId}" placeholder="Thêm nội dung báo cáo ${teamObj.label}..." class="flex-1 bg-slate-900 border border-emerald-700 text-white rounded-xl px-3 py-1.5 text-xs">
+                                <button onclick="submitReport(${toId})" class="bg-amber-400 text-slate-950 font-bold px-3 py-1.5 rounded-xl text-xs hover:bg-amber-300 transition">Gửi</button>
                             </div>
                         ` : ''}
                     </div>
@@ -397,23 +408,33 @@
             }).join('');
         }
 
-        window.submitReport = function(roleId) {
-            const input = document.getElementById(`reportInput-${roleId}`);
+        window.submitReport = function(toId) {
+            const input = document.getElementById(`reportInput-${toId}`);
             const text = input.value.trim();
             if (!text) return showToast("Vui lòng nhập nội dung!", "error");
 
-            state.reports[roleId] = {
-                text: text,
+            const roleObj = ROLES.find(r => r.id === state.currentUser.roleId);
+            if (!state.teamReports[toId]) state.teamReports[toId] = [];
+
+            state.teamReports[toId].unshift({
+                id: Math.random().toString(36).substring(2, 9),
+                roleId: state.currentUser.roleId,
+                roleTitle: roleObj.title,
                 authorName: state.currentUser.name,
+                text: text,
                 time: new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })
-            };
+            });
+
             saveDb();
-            showToast("Đã cập nhật báo cáo thành công!");
+            showToast("Đã thêm báo cáo thành công!");
         };
 
-        window.clearReport = function(roleId) {
-            if (state.currentUser.roleId !== roleId) return showToast("Bạn chỉ có thể xóa báo cáo của chính mình!", "error");
-            delete state.reports[roleId];
+        window.deleteReportItem = function(toId, reportId) {
+            const list = state.teamReports[toId] || [];
+            const item = list.find(r => r.id === reportId);
+            if (!item || item.roleId !== state.currentUser.roleId) return showToast("Bạn chỉ xóa được báo cáo của chính mình!", "error");
+
+            state.teamReports[toId] = list.filter(r => r.id !== reportId);
             saveDb();
             showToast("Đã xóa báo cáo!");
         };
@@ -463,32 +484,51 @@
                 return;
             }
 
+            const isSuperAdmin = state.currentUser && SUPER_ADMINS.includes(state.currentUser.roleId);
+
             container.innerHTML = state.history.map(h => {
                 const isMine = state.currentUser && state.currentUser.roleId === h.roleId;
+                const canDelete = isSuperAdmin || isMine;
                 const isPos = h.delta >= 0;
+
                 return `
                     <div class="bg-chalkSoft/40 border border-emerald-800/60 rounded-xl p-3 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 text-xs">
                         <div class="flex items-center space-x-2">
                             <span class="text-emerald-400 font-mono text-[11px] bg-chalkBoard px-2 py-0.5 rounded">${h.time}</span>
                             <span class="font-bold text-amber-300">[${h.authorName}]</span>
-                            <span class="font-bold text-white">${h.teamIcon} ${h.teamLabel}</span>
+                            <span class="font-bold text-white">${h.teamIcon || ''} ${h.teamLabel}</span>
                             <span class="px-2 py-0.5 rounded font-bold ${isPos ? 'bg-emerald-500/20 text-emerald-300' : 'bg-rose-500/20 text-rose-300'}">${isPos ? '+' : ''}${h.delta} bước</span>
                         </div>
                         <div class="text-emerald-200 flex items-center gap-2">
                             <span>Lý do: <strong>${h.reason}</strong></span>
-                            ${isMine ? `<button onclick="deleteHistoryItem('${h.id}')" class="text-rose-400 font-bold hover:text-rose-300 ml-2">Xóa</button>` : ''}
+                            ${canDelete ? `<button onclick="deleteHistoryItem('${h.id}')" class="text-rose-400 font-bold hover:text-rose-300 ml-2">Xóa</button>` : ''}
                         </div>
                     </div>
                 `;
             }).join('');
         }
 
+        // XÓA LỊCH SỬ ➔ TỰ ĐỘNG HOÀN ĐIỂM
         window.deleteHistoryItem = function(id) {
             const item = state.history.find(h => h.id === id);
-            if (!item || item.roleId !== state.currentUser.roleId) return showToast("Bạn chỉ xóa được lịch sử do chính mình thực hiện!", "error");
+            if (!item) return;
+
+            const isSuperAdmin = state.currentUser && SUPER_ADMINS.includes(state.currentUser.roleId);
+            const isMine = state.currentUser && state.currentUser.roleId === item.roleId;
+
+            if (!isSuperAdmin && !isMine) {
+                return showToast("Bạn không có quyền xóa lịch sử này!", "error");
+            }
+
+            // Hoàn lại điểm
+            const t = state.teams.find(team => team.id === item.teamId);
+            if (t) {
+                t.steps = Math.max(0, t.steps - item.delta);
+            }
+
             state.history = state.history.filter(h => h.id !== id);
             saveDb();
-            showToast("Đã xóa lịch sử!");
+            showToast(`Đã xóa lịch sử & hoàn lại ${item.delta > 0 ? '-' : '+'}${Math.abs(item.delta)} bước!`);
         };
 
         function renderAdminPanel() {
@@ -507,7 +547,7 @@
             else resetBtn.classList.add('hidden');
 
             if (roleObj.group !== 'admin') {
-                grid.innerHTML = `<p class="text-xs text-amber-300 col-span-2 text-center py-2">Bạn đang đăng nhập quyền Tổ trưởng/Tổ phó. Vui lòng nhập báo cáo tại khu vực 8 Ô phía trên.</p>`;
+                grid.innerHTML = `<p class="text-xs text-amber-300 col-span-2 text-center py-2">Bạn đang đăng nhập quyền Tổ trưởng/Tổ phó. Vui lòng nhập báo cáo tại khu vực 4 Ô phía trên.</p>`;
                 return;
             }
 
@@ -542,6 +582,7 @@
             const timeStr = new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
             state.history.unshift({
                 id: Math.random().toString(36).substring(2, 9),
+                teamId: teamId,
                 roleId: state.currentUser.roleId,
                 authorName: state.currentUser.name,
                 time: timeStr,
