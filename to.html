@@ -79,7 +79,7 @@
             </div>
         </section>
 
-        <!-- KHU VỰC BÁO CÁO 4 Ô CHO 4 TỔ (MỖI Ô LƯU NHIỀU NỘI DUNG) -->
+        <!-- KHU VỰC BÁO CÁO 4 Ô CHO 4 TỔ -->
         <section id="reportSection" class="bg-chalkBoard rounded-2xl p-4 sm:p-6 shadow-xl border border-emerald-800 space-y-4">
             <div class="flex items-center justify-between border-b border-emerald-800/80 pb-3">
                 <h3 class="text-lg font-bold text-amber-300 flex items-center gap-2">
@@ -138,14 +138,14 @@
     <!-- MODAL ĐĂNG NHẬP -->
     <div id="loginModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4">
         <div class="bg-chalkBoard rounded-2xl p-6 max-w-md w-full shadow-2xl border border-emerald-700 space-y-4">
-            <h3 class="text-xl font-bold text-amber-300 text-center">Đăng Nhập Tài Khoản Class 7/1</h3>
+            <h3 class="text-xl font-bold text-amber-300 text-center">Đăng Nhập Tài Khoản Lớp 7/1</h3>
             <form id="loginForm" class="space-y-3">
                 <div>
                     <label class="block text-xs text-emerald-200 font-bold mb-1">Chọn Chức Danh</label>
                     <select id="roleSelect" class="w-full bg-chalkSoft text-white text-xs font-bold p-2.5 rounded-xl border border-emerald-600 focus:outline-none"></select>
                 </div>
                 <div>
-                    <label class="block text-xs text-emerald-200 font-bold mb-1">Mật Khẩu (Mặc định: 1234)</label>
+                    <label class="block text-xs text-emerald-200 font-bold mb-1">Mật Khẩu</label>
                     <input type="password" id="passwordInput" placeholder="Nhập mật khẩu..." required class="w-full bg-chalkSoft text-white text-xs font-bold p-2.5 rounded-xl border border-emerald-600 focus:outline-none">
                 </div>
                 <p id="loginError" class="text-xs text-rose-400 font-bold hidden text-center">Mật khẩu không chính xác!</p>
@@ -185,7 +185,7 @@
         import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        const appId = 'thi-dua-lop-71-v3';
+        const appId = 'thi-dua-lop-71-v5';
         const firebaseConfig = {
             apiKey: "AIzaSyCQF4C0DcSce_bNDOBhj6KbsjFnrCJjRXI",
             authDomain: "planning-with-ai-3f2fe.firebaseapp.com",
@@ -196,21 +196,21 @@
         };
 
         const ROLES = [
-            { id: "gvcn", title: "Giáo viên chủ nhiệm", group: "admin", canReset: true },
-            { id: "lop_truong", title: "Lớp trưởng", group: "admin", canReset: true },
-            { id: "ky_luat_1", title: "Lớp phó kỷ luật 1", group: "admin", canReset: true },
-            { id: "hoc_tap", title: "Lớp phó học tập", group: "admin", canReset: false },
-            { id: "ky_luat_2", title: "Lớp phó kỷ luật 2", group: "admin", canReset: false },
-            { id: "phong_trao", title: "Lớp phó phong trào", group: "admin", canReset: false },
-            { id: "lao_dong", title: "Lớp phó lao động", group: "admin", canReset: false },
-            { id: "to_1_truong", title: "Tổ trưởng Tổ 1", group: "reporter", toId: 1 },
-            { id: "to_1_pho", title: "Tổ phó Tổ 1", group: "reporter", toId: 1 },
-            { id: "to_2_truong", title: "Tổ trưởng Tổ 2", group: "reporter", toId: 2 },
-            { id: "to_2_pho", title: "Tổ phó Tổ 2", group: "reporter", toId: 2 },
-            { id: "to_3_truong", title: "Tổ trưởng Tổ 3", group: "reporter", toId: 3 },
-            { id: "to_3_pho", title: "Tổ phó Tổ 3", group: "reporter", toId: 3 },
-            { id: "to_4_truong", title: "Tổ trưởng Tổ 4", group: "reporter", toId: 4 },
-            { id: "to_4_pho", title: "Tổ phó Tổ 4", group: "reporter", toId: 4 },
+            { id: "gvcn", title: "Giáo viên chủ nhiệm", group: "admin", canReset: true, defaultPass: "2010", defaultName: "Cô Hằng" },
+            { id: "lop_truong", title: "Lớp trưởng", group: "admin", canReset: true, defaultPass: "2706", defaultName: "Thùy Anh" },
+            { id: "ky_luat_1", title: "Lớp phó kỷ luật 1", group: "admin", canReset: true, defaultPass: "0801", defaultName: "Linh Phương" },
+            { id: "ky_luat_2", title: "Lớp phó kỷ luật 2", group: "admin", canReset: false, defaultPass: "0309", defaultName: "Gia Khang" },
+            { id: "hoc_tap", title: "Lớp phó học tập", group: "admin", canReset: false, defaultPass: "2804", defaultName: "Thùy Linh" },
+            { id: "lao_dong", title: "Lớp phó lao động", group: "admin", canReset: false, defaultPass: "0505", defaultName: "Minh Đăng" },
+            { id: "phong_trao", title: "Lớp phó phong trào", group: "admin", canReset: false, defaultPass: "2302", defaultName: "Bảo Minh" },
+            { id: "to_1_truong", title: "Tổ trưởng Tổ 1", group: "reporter", toId: 1, defaultPass: "3008", defaultName: "Bảo Châu" },
+            { id: "to_1_pho", title: "Tổ phó Tổ 1", group: "reporter", toId: 1, defaultPass: "2210", defaultName: "Xuân An" },
+            { id: "to_2_truong", title: "Tổ trưởng Tổ 2", group: "reporter", toId: 2, defaultPass: "3001", defaultName: "Gia Linh" },
+            { id: "to_2_pho", title: "Tổ phó Tổ 2", group: "reporter", toId: 2, defaultPass: "0504", defaultName: "Minh Dan" },
+            { id: "to_3_truong", title: "Tổ trưởng Tổ 3", group: "reporter", toId: 3, defaultPass: "0109", defaultName: "Ngọc Ngân" },
+            { id: "to_3_pho", title: "Tổ phó Tổ 3", group: "reporter", toId: 3, defaultPass: "1503", defaultName: "Khánh Ngọc" },
+            { id: "to_4_truong", title: "Tổ trưởng Tổ 4", group: "reporter", toId: 4, defaultPass: "0909", defaultName: "Tú Quỳnh" },
+            { id: "to_4_pho", title: "Tổ phó Tổ 4", group: "reporter", toId: 4, defaultPass: "2804", defaultName: "Khải Uy" },
         ];
 
         const SUPER_ADMINS = ['gvcn', 'lop_truong', 'ky_luat_1'];
@@ -226,7 +226,7 @@
             teams: DEFAULT_TEAMS,
             history: [],
             announcements: [],
-            teamReports: { 1: [], 2: [], 3: [], 4: [] }, // Danh sách báo cáo theo từng Tổ
+            teamReports: { 1: [], 2: [], 3: [], 4: [] },
             accounts: {},
             currentUser: JSON.parse(localStorage.getItem('CLASS_AUTH_SESSION') || 'null'),
             user: null
@@ -249,10 +249,11 @@
                     if (d.announcements) state.announcements = d.announcements;
                     if (d.teamReports) state.teamReports = d.teamReports;
                     if (!state.teamReports[1]) state.teamReports = { 1: [], 2: [], 3: [], 4: [] };
+                    if (d.accounts) state.accounts = d.accounts;
 
                     ROLES.forEach(r => {
                         if (!state.accounts[r.id]) {
-                            state.accounts[r.id] = { name: r.title, password: "1234" };
+                            state.accounts[r.id] = { name: r.defaultName, password: r.defaultPass };
                         }
                     });
 
@@ -350,7 +351,6 @@
             }).join('');
         }
 
-        // RENDER 4 Ô BÁO CÁO GỘP (MỖI TỔ 1 Ô)
         function renderReports() {
             const section = document.getElementById('reportSection');
             const grid = document.getElementById('reportsGrid');
@@ -508,7 +508,6 @@
             }).join('');
         }
 
-        // XÓA LỊCH SỬ ➔ TỰ ĐỘNG HOÀN ĐIỂM
         window.deleteHistoryItem = function(id) {
             const item = state.history.find(h => h.id === id);
             if (!item) return;
@@ -520,7 +519,6 @@
                 return showToast("Bạn không có quyền xóa lịch sử này!", "error");
             }
 
-            // Hoàn lại điểm
             const t = state.teams.find(team => team.id === item.teamId);
             if (t) {
                 t.steps = Math.max(0, t.steps - item.delta);
@@ -597,7 +595,6 @@
             showToast(`Đã ${val > 0 ? 'cộng' : 'trừ'} điểm thành công!`);
         };
 
-        // GỬI THÔNG BÁO
         document.getElementById('sendNoticeForm').addEventListener('submit', (e) => {
             e.preventDefault();
             const input = document.getElementById('noticeInput');
@@ -616,7 +613,6 @@
             showToast("Đã gửi thông báo mới!");
         });
 
-        // XỬ LÝ ĐĂNG NHẬP & ĐỔI TÊN
         const loginModal = document.getElementById('loginModal');
         const profileModal = document.getElementById('profileModal');
         const roleSelect = document.getElementById('roleSelect');
