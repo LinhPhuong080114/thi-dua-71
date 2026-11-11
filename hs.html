@@ -406,8 +406,8 @@
 
                 return `
                     <div class="bg-chalkSoft/40 border border-emerald-800/60 rounded-xl p-3 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 text-xs">
-                        <div class="flex items-center space-x-2">
-                            <span class="text-emerald-400 font-mono text-[11px] bg-chalkBoard px-2 py-0.5 rounded">${h.time}</span>
+                        <div class="flex items-center space-x-2 flex-wrap gap-y-1">
+                            <span class="text-emerald-400 font-mono text-[11px] bg-chalkBoard px-2 py-0.5 rounded">Lúc: ${h.violationTime ? h.violationTime : h.time}</span>
                             <span class="font-bold text-amber-300">[${h.authorName}]</span>
                             <span class="font-bold text-white">${h.teamIcon || ''} ${h.teamLabel}</span>
                             <span class="px-2 py-0.5 rounded font-bold ${isPos ? 'bg-emerald-500/20 text-emerald-300' : 'bg-rose-500/20 text-rose-300'}">${isPos ? '+' : ''}${h.delta} điểm</span>
@@ -476,7 +476,10 @@
                     <h4 class="text-sm font-bold text-amber-400">Cộng / Trừ Điểm Học Sinh</h4>
                     <div>
                         <select id="quickTeamSelect" class="w-full bg-slate-900 border border-slate-700 text-white text-xs rounded p-2 mb-2">${teamOptions}</select>
-                        <input type="number" id="quickDeltaInput" placeholder="Số điểm (+ hoặc -)..." class="w-full bg-slate-900 border border-slate-700 text-white text-xs rounded p-2 mb-2">
+                        <div class="flex gap-2 mb-2">
+                            <input type="number" id="quickDeltaInput" placeholder="Số điểm (+/-)..." class="w-1/3 bg-slate-900 border border-slate-700 text-white text-xs rounded p-2">
+                            <input type="text" id="quickTimeInput" placeholder="Thời gian (VD: Tiết 2, 9h15)..." class="w-2/3 bg-slate-900 border border-slate-700 text-white text-xs rounded p-2">
+                        </div>
                         <input type="text" id="quickReasonInput" placeholder="Nhập lý do..." class="w-full bg-slate-900 border border-slate-700 text-white text-xs rounded p-2 mb-2">
                     </div>
                     <div class="flex gap-2">
@@ -494,6 +497,7 @@
         window.applyQuickPoints = function(isSubtract) {
             const select = document.getElementById('quickTeamSelect');
             const deltaInput = document.getElementById('quickDeltaInput');
+            const timeInput = document.getElementById('quickTimeInput');
             const reasonInput = document.getElementById('quickReasonInput');
 
             const teamId = parseInt(select.value, 10);
@@ -505,13 +509,16 @@
             const target = state.teams.find(t => t.id === teamId);
             target.steps = Math.max(0, target.steps + val);
 
-            const timeStr = new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+            const customTime = timeInput.value.trim();
+            const timeStr = new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
+
             state.history.unshift({
                 id: Math.random().toString(36).substring(2, 9),
                 teamId: teamId,
                 roleId: state.currentUser.roleId,
                 authorName: state.currentUser.name,
                 time: timeStr,
+                violationTime: customTime,
                 teamLabel: target.label,
                 teamIcon: target.icon,
                 delta: val,
@@ -519,7 +526,9 @@
             });
 
             saveDb();
-            deltaInput.value = ''; reasonInput.value = '';
+            deltaInput.value = ''; 
+            timeInput.value = ''; 
+            reasonInput.value = '';
             showToast("Đã cập nhật điểm học sinh!");
         };
 
