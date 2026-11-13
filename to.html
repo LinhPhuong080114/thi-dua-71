@@ -33,6 +33,10 @@
             75% { transform: translateY(3px) rotate(6deg); }
         }
         .animate-waddle { animation: waddle 0.7s infinite ease-in-out; display: inline-block; }
+        .drag-zone.drag-over {
+            border-color: #fbbf24 !important;
+            background-color: rgba(251, 191, 36, 0.12) !important;
+        }
     </style>
 </head>
 <body class="min-h-screen flex flex-col chalk-bg">
@@ -60,7 +64,8 @@
         <div class="bg-chalkSoft/80 rounded-2xl p-5 border border-emerald-700/60 shadow-md flex flex-wrap items-center justify-between gap-4">
             <div>
                 <span class="bg-amber-400 text-slate-950 text-xs px-2.5 py-1 rounded font-bold uppercase tracking-wider inline-block mb-1">Thi Đua Lớp 7/1</span>
-                <h2 class="text-2xl font-bold text-white">Điểm Cộng / Trừ Các Tổ</h2>
+                <h2 class="text-2xl font-bold text-white">Điểm Trung Bình & Cộng / Trừ Các Tổ</h2>
+                <p class="text-xs text-emerald-300 mt-0.5">Tự động cập nhật từ điểm cá nhân (làm tròn 2 chữ số) + điểm cộng/trừ riêng của tổ</p>
             </div>
             <div class="bg-chalkBoard px-4 py-2.5 rounded-xl border border-emerald-800 text-center min-w-[160px]">
                 <div class="text-[11px] text-emerald-400 font-bold uppercase">Tài Khoản Hiện Tại</div>
@@ -68,7 +73,7 @@
             </div>
         </div>
 
-        <section class="grid grid-cols-2 md:grid-cols-4 gap-4" id="cardsGrid"></section>
+        <section class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4" id="cardsGrid"></section>
 
         <section class="bg-chalkBoard rounded-2xl p-4 sm:p-6 shadow-xl border border-emerald-800 space-y-4">
             <h3 class="text-lg font-bold text-amber-300 flex items-center gap-2 border-b border-emerald-800/80 pb-3">
@@ -107,7 +112,7 @@
         <!-- LỊCH SỬ CỘNG TRỪ ĐIỂM -->
         <section class="bg-chalkBoard rounded-2xl p-4 sm:p-6 shadow-xl border border-emerald-800 space-y-3">
             <h3 class="text-lg font-bold text-amber-300 flex items-center gap-2 border-b border-emerald-800/80 pb-3">
-                <i class="fa-solid fa-clock-rotate-left"></i> Lịch Sử Cộng / Trừ Điểm
+                <i class="fa-solid fa-clock-rotate-left"></i> Lịch Sử Cộng / Trừ Điểm Riêng Của Tổ
             </h3>
             <div class="max-h-60 overflow-y-auto space-y-2 pr-2" id="historyContainer"></div>
         </section>
@@ -126,12 +131,28 @@
                         <i class="fa-solid fa-user-pen"></i> Đổi Tên / Mật Khẩu
                     </button>
                     <button id="resetAllBtn" class="hidden px-3 py-1.5 rounded-lg bg-rose-500/20 text-rose-300 hover:bg-rose-500/30 text-xs font-bold border border-rose-500/40">
-                        <i class="fa-solid fa-rotate-left"></i> Đặt Lại 100 Bước
+                        <i class="fa-solid fa-rotate-left"></i> Đặt Lại Điểm Riêng Tổ = 0
                     </button>
                     <button id="logoutBtn" class="px-3 py-1.5 rounded-lg bg-slate-800 text-slate-300 hover:bg-slate-700 text-xs font-bold border border-slate-700">Thoát</button>
                 </div>
             </div>
+            
+            <!-- Cộng trừ điểm riêng từng tổ -->
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4" id="adminControlsGrid"></div>
+
+            <!-- Kéo thả phân chia học sinh vào tổ -->
+            <div id="rosterBoardWrapper" class="hidden pt-4 border-t border-slate-800 space-y-3">
+                <div class="flex flex-wrap items-center justify-between gap-2">
+                    <div>
+                        <h4 class="text-sm font-bold text-amber-300 flex items-center gap-2">
+                            <i class="fa-solid fa-users-gear"></i> Bảng Phân Tổ Học Sinh (Kéo Thả Tên Vào Ô Tổ)
+                        </h4>
+                        <p class="text-[11px] text-slate-400 mt-0.5">Kéo thả thẻ tên học sinh giữa các cột (hoặc chọn nhanh số Tổ trên thẻ) — điểm trung bình sẽ tự động tính lại ngay lập tức.</p>
+                    </div>
+                    <span class="text-xs bg-emerald-950 text-emerald-300 px-3 py-1 rounded-lg border border-emerald-700/60 font-bold" id="assignedCountBadge">Đã xếp: 0/35 HS</span>
+                </div>
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3" id="rosterColumnsGrid"></div>
+            </div>
         </section>
     </main>
 
@@ -186,6 +207,7 @@
         import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         const appId = 'thi-dua-lop-71-v5';
+        const personalAppId = 'thi-dua-ca-nhan-lop-71-v5';
         const firebaseConfig = {
             apiKey: "AIzaSyCQF4C0DcSce_bNDOBhj6KbsjFnrCJjRXI",
             authDomain: "planning-with-ai-3f2fe.firebaseapp.com",
@@ -215,15 +237,45 @@
 
         const SUPER_ADMINS = ['gvcn', 'lop_truong', 'ky_luat_1'];
 
+        const studentNames = [
+            "Xuân An", "Bảo An", "Thùy Anh", "Hải Anh", "Minh Anh", 
+            "Hoàng Bách", "Gia Bình", "Bảo Châu", "Thanh Châu", "Minh Đan", 
+            "Minh Đăng", "Bảo Hoàng", "Thiên Hương", "Minh Khang", "Gia Khang", 
+            "Gia Linh", "Thùy Linh", "Nhật Linh", "Đắc Long", "Bảo Minh", 
+            "Gia Minh", "Việt Minh", "Hoàng Ngân", "Ngọc Ngân", "Khánh Ngọc", 
+            "Phúc Nguyên", "Gia Phúc", "Linh Phương", "Nhật Quang", "Tú Quỳnh", 
+            "Tấn Thành", "Quốc Thông", "Bá Tiến", "Khải Uy", "Hải Vân"
+        ];
+
+        const DEFAULT_GROUPS = {
+            "Bảo Châu": 1, "Xuân An": 1,
+            "Gia Linh": 2, "Minh Đan": 2,
+            "Ngọc Ngân": 3, "Khánh Ngọc": 3,
+            "Tú Quỳnh": 4, "Khải Uy": 4
+        };
+
+        const iconsList = ["🦆", "🐥", "🦢", "🦩"];
+        const palette = ["#FBC02D", "#EC4899", "#38BDF8", "#C084FC", "#34D399", "#F87171", "#818CF8", "#F472B6", "#4ADE80", "#FBBF24"];
+
+        const DEFAULT_STUDENTS = studentNames.map((name, i) => ({
+            id: i + 1,
+            label: name,
+            color: palette[i % palette.length],
+            steps: 100,
+            icon: iconsList[i % iconsList.length],
+            groupId: DEFAULT_GROUPS[name] || 0
+        }));
+
         const DEFAULT_TEAMS = [
-            { id: 1, label: "Tổ 1", color: "#FBC02D", bgClass: "bg-amber-400", textClass: "text-amber-400", steps: 100, icon: "🦆" },
-            { id: 2, label: "Tổ 2", color: "#EC4899", bgClass: "bg-pink-500", textClass: "text-pink-400", steps: 100, icon: "🐥" },
-            { id: 3, label: "Tổ 3", color: "#38BDF8", bgClass: "bg-sky-400", textClass: "text-sky-400", steps: 100, icon: "🦢" },
-            { id: 4, label: "Tổ 4", color: "#C084FC", bgClass: "bg-purple-400", textClass: "text-purple-400", steps: 100, icon: "🦩" },
+            { id: 1, label: "Tổ 1", color: "#FBC02D", bgClass: "bg-amber-400", textClass: "text-amber-400", bonus: 0, steps: 100, icon: "🦆" },
+            { id: 2, label: "Tổ 2", color: "#EC4899", bgClass: "bg-pink-500", textClass: "text-pink-400", bonus: 0, steps: 100, icon: "🐥" },
+            { id: 3, label: "Tổ 3", color: "#38BDF8", bgClass: "bg-sky-400", textClass: "text-sky-400", bonus: 0, steps: 100, icon: "🦢" },
+            { id: 4, label: "Tổ 4", color: "#C084FC", bgClass: "bg-purple-400", textClass: "text-purple-400", bonus: 0, steps: 100, icon: "🦩" },
         ];
 
         let state = {
             teams: DEFAULT_TEAMS,
+            students: DEFAULT_STUDENTS,
             history: [],
             announcements: [],
             teamReports: { 1: [], 2: [], 3: [], 4: [] },
@@ -232,19 +284,70 @@
             user: null
         };
 
+        let draggedStudentId = null;
+
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const db = getFirestore(app);
         const docRef = doc(db, 'public_duck_races', appId);
+        const personalDocRef = doc(db, 'public_duck_races', personalAppId);
 
         signInAnonymously(auth);
-        onAuthStateChanged(auth, (u) => { if (u) { state.user = u; subscribeState(); } });
+        onAuthStateChanged(auth, (u) => {
+            if (u) {
+                state.user = u;
+                subscribeState();
+                subscribePersonalState();
+            }
+        });
+
+        function round2(num) {
+            return Math.round((num + Number.EPSILON) * 100) / 100;
+        }
+
+        function formatScore(num) {
+            return round2(num).toFixed(2);
+        }
+
+        function computeTeamMetrics(team) {
+            const members = state.students.filter(s => s.groupId === team.id);
+            const avgRaw = members.length > 0
+                ? members.reduce((sum, s) => sum + (Number(s.steps) || 0), 0) / members.length
+                : 100;
+            const avg = round2(avgRaw);
+            const bonus = round2(Number(team.bonus) || 0);
+            const total = Math.max(0, round2(avg + bonus));
+            return { members, count: members.length, avg, bonus, total };
+        }
+
+        function subscribePersonalState() {
+            onSnapshot(personalDocRef, (snap) => {
+                if (snap.exists()) {
+                    const d = snap.data();
+                    if (d.teams) {
+                        state.students = d.teams.map(t => ({
+                            ...t,
+                            groupId: typeof t.groupId === 'number' ? t.groupId : (DEFAULT_GROUPS[t.label] || 0)
+                        }));
+                    }
+                    render();
+                } else {
+                    savePersonalDb();
+                }
+            });
+        }
 
         function subscribeState() {
             onSnapshot(docRef, (snap) => {
                 if (snap.exists()) {
                     const d = snap.data();
-                    if (d.teams) state.teams = d.teams;
+                    if (d.teams) {
+                        state.teams = d.teams.map((t, idx) => ({
+                            ...DEFAULT_TEAMS[idx],
+                            ...t,
+                            bonus: typeof t.bonus === 'number' ? t.bonus : 0
+                        }));
+                    }
                     if (d.history) state.history = d.history;
                     if (d.announcements) state.announcements = d.announcements;
                     if (d.teamReports) state.teamReports = d.teamReports;
@@ -270,12 +373,23 @@
 
         async function saveDb() {
             if (!state.user) return;
+            const syncedTeams = state.teams.map(t => ({
+                ...t,
+                steps: computeTeamMetrics(t).total
+            }));
             await setDoc(docRef, {
-                teams: state.teams,
+                teams: syncedTeams,
                 history: state.history,
                 announcements: state.announcements,
                 teamReports: state.teamReports,
                 accounts: state.accounts
+            }, { merge: true });
+        }
+
+        async function savePersonalDb() {
+            if (!state.user) return;
+            await setDoc(personalDocRef, {
+                teams: state.students
             }, { merge: true });
         }
 
@@ -310,19 +424,40 @@
 
         function renderCards() {
             const container = document.getElementById('cardsGrid');
-            const sorted = [...state.teams].sort((a, b) => b.steps - a.steps);
-            container.innerHTML = state.teams.map(t => {
-                const rank = sorted.findIndex(s => s.id === t.id) + 1;
+            const computed = state.teams.map(t => ({ team: t, ...computeTeamMetrics(t) }));
+            const sorted = [...computed].sort((a, b) => b.total - a.total);
+
+            container.innerHTML = computed.map(item => {
+                const { team: t, count, avg, bonus, total } = item;
+                const rank = sorted.findIndex(s => s.team.id === t.id) + 1;
+                const bonusSign = bonus >= 0 ? `+${formatScore(bonus)}` : formatScore(bonus);
+                const bonusColor = bonus > 0 ? 'text-emerald-300' : (bonus < 0 ? 'text-rose-400' : 'text-slate-400');
+
                 return `
-                    <div class="bg-chalkBoard rounded-2xl p-4 border border-emerald-800 shadow-md">
-                        <div class="flex justify-between items-center mb-2">
-                            <span class="text-3xl">${t.icon}</span>
-                            <span class="text-xs font-bold px-2 py-0.5 rounded ${t.bgClass} text-slate-950">#${rank}</span>
+                    <div class="bg-chalkBoard rounded-2xl p-4 border border-emerald-800 shadow-md flex flex-col justify-between">
+                        <div>
+                            <div class="flex justify-between items-center mb-2">
+                                <span class="text-3xl">${t.icon}</span>
+                                <span class="text-xs font-bold px-2 py-0.5 rounded ${t.bgClass} text-slate-950">#${rank}</span>
+                            </div>
+                            <div class="flex items-center justify-between">
+                                <h4 class="font-bold text-white text-base">${t.label}</h4>
+                                <span class="text-[11px] bg-emerald-950/90 text-emerald-300 px-2 py-0.5 rounded border border-emerald-800 font-semibold">${count} HS</span>
+                            </div>
+                            <div class="flex items-baseline gap-1 mt-1">
+                                <span class="text-3xl font-bold font-mono ${t.textClass}">${formatScore(total)}</span>
+                                <span class="text-xs text-emerald-400 font-bold">điểm</span>
+                            </div>
                         </div>
-                        <h4 class="font-bold text-white text-base">${t.label}</h4>
-                        <div class="flex items-baseline gap-1 mt-1">
-                            <span class="text-3xl font-bold ${t.textClass}">${t.steps}</span>
-                            <span class="text-xs text-emerald-400 font-bold">bước</span>
+                        <div class="mt-3 pt-2 border-t border-emerald-800/70 text-[11px] space-y-0.5 font-mono">
+                            <div class="flex justify-between text-emerald-200/90">
+                                <span>TB cá nhân:</span>
+                                <span class="font-bold">${formatScore(avg)}</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-emerald-200/90">Cộng/trừ tổ:</span>
+                                <span class="font-bold ${bonusColor}">${bonusSign}</span>
+                            </div>
                         </div>
                     </div>
                 `;
@@ -331,15 +466,17 @@
 
         function renderTracks() {
             const container = document.getElementById('tracksContainer');
-            const maxSteps = Math.max(...state.teams.map(t => t.steps), 100);
+            const computed = state.teams.map(t => ({ team: t, ...computeTeamMetrics(t) }));
+            const maxSteps = Math.max(...computed.map(c => c.total), 100);
             const trackMax = Math.ceil((maxSteps + 30) / 10) * 10;
-            container.innerHTML = state.teams.map(t => {
-                const pct = Math.min(100, Math.max(0, (t.steps / trackMax) * 100));
+
+            container.innerHTML = computed.map(({ team: t, total, count }) => {
+                const pct = Math.min(100, Math.max(0, (total / trackMax) * 100));
                 return `
                     <div class="space-y-1">
                         <div class="flex justify-between text-xs font-bold px-1">
-                            <span class="text-emerald-200">${t.label} (${t.icon})</span>
-                            <span class="${t.textClass} font-mono">${t.steps} Bước</span>
+                            <span class="text-emerald-200">${t.label} (${t.icon} • ${count} thành viên)</span>
+                            <span class="${t.textClass} font-mono">${formatScore(total)} Điểm</span>
                         </div>
                         <div class="relative h-14 bg-chalkSoft/60 rounded-xl border border-emerald-700/60 flex items-center px-4 overflow-hidden">
                             <div class="duck-lane absolute top-1/2 -translate-y-1/2 flex items-center z-10" style="left: calc(${pct}% - 22px);">
@@ -497,7 +634,7 @@
                             <span class="text-emerald-400 font-mono text-[11px] bg-chalkBoard px-2 py-0.5 rounded">${h.time}</span>
                             <span class="font-bold text-amber-300">[${h.authorName}]</span>
                             <span class="font-bold text-white">${h.teamIcon || ''} ${h.teamLabel}</span>
-                            <span class="px-2 py-0.5 rounded font-bold ${isPos ? 'bg-emerald-500/20 text-emerald-300' : 'bg-rose-500/20 text-rose-300'}">${isPos ? '+' : ''}${h.delta} bước</span>
+                            <span class="px-2 py-0.5 rounded font-bold ${isPos ? 'bg-emerald-500/20 text-emerald-300' : 'bg-rose-500/20 text-rose-300'}">${isPos ? '+' : ''}${h.delta} điểm</span>
                         </div>
                         <div class="text-emerald-200 flex items-center gap-2">
                             <span>Lý do: <strong>${h.reason}</strong></span>
@@ -521,17 +658,18 @@
 
             const t = state.teams.find(team => team.id === item.teamId);
             if (t) {
-                t.steps = Math.max(0, t.steps - item.delta);
+                t.bonus = round2((Number(t.bonus) || 0) - item.delta);
             }
 
             state.history = state.history.filter(h => h.id !== id);
             saveDb();
-            showToast(`Đã xóa lịch sử & hoàn lại ${item.delta > 0 ? '-' : '+'}${Math.abs(item.delta)} bước!`);
+            showToast(`Đã xóa lịch sử & hoàn lại ${item.delta > 0 ? '-' : '+'}${Math.abs(item.delta)} điểm!`);
         };
 
         function renderAdminPanel() {
             const panel = document.getElementById('adminPanel');
             const grid = document.getElementById('adminControlsGrid');
+            const rosterWrapper = document.getElementById('rosterBoardWrapper');
             const resetBtn = document.getElementById('resetAllBtn');
             const subtitle = document.getElementById('userProfileSubtitle');
 
@@ -545,37 +683,158 @@
             else resetBtn.classList.add('hidden');
 
             if (roleObj.group !== 'admin') {
+                rosterWrapper.classList.add('hidden');
                 grid.innerHTML = `<p class="text-xs text-amber-300 col-span-2 text-center py-2">Bạn đang đăng nhập quyền Tổ trưởng/Tổ phó. Vui lòng nhập báo cáo tại khu vực 4 ô phía trên.</p>`;
                 return;
             }
 
-            grid.innerHTML = state.teams.map(t => `
-                <div class="bg-slate-950 rounded-xl p-4 border border-slate-800 space-y-3">
-                    <div class="flex justify-between items-center border-b border-slate-800 pb-2">
-                        <span class="font-bold text-white">${t.icon} ${t.label}</span>
-                        <span class="font-bold text-amber-300 font-mono">${t.steps} bước</span>
+            rosterWrapper.classList.remove('hidden');
+
+            grid.innerHTML = state.teams.map(t => {
+                const { avg, bonus, total } = computeTeamMetrics(t);
+                const bonusText = bonus >= 0 ? `+${formatScore(bonus)}` : formatScore(bonus);
+                return `
+                    <div class="bg-slate-950 rounded-xl p-4 border border-slate-800 space-y-3">
+                        <div class="flex justify-between items-center border-b border-slate-800 pb-2">
+                            <span class="font-bold text-white">${t.icon} ${t.label}</span>
+                            <div class="text-right font-mono">
+                                <span class="font-bold text-amber-300 text-sm">${formatScore(total)} điểm</span>
+                                <span class="block text-[10px] text-slate-400">TB: ${formatScore(avg)} | Tổ: ${bonusText}</span>
+                            </div>
+                        </div>
+                        <div class="flex gap-2">
+                            <input type="number" step="0.01" id="deltaInput-${t.id}" placeholder="Số điểm (VD: 1 hoặc 0.5)..." class="w-1/2 bg-slate-900 border border-slate-700 text-white text-xs rounded p-2">
+                            <input type="text" id="reasonInput-${t.id}" placeholder="Lý do cộng/trừ tổ..." class="w-1/2 bg-slate-900 border border-slate-700 text-white text-xs rounded p-2">
+                        </div>
+                        <div class="flex gap-2">
+                            <button onclick="addSteps(${t.id}, false)" class="flex-1 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded text-xs font-bold">+ Cộng Điểm Tổ</button>
+                            <button onclick="addSteps(${t.id}, true)" class="flex-1 py-2 bg-rose-600 hover:bg-rose-500 text-white rounded text-xs font-bold">- Trừ Điểm Tổ</button>
+                        </div>
                     </div>
-                    <div class="flex gap-2">
-                        <input type="number" id="deltaInput-${t.id}" placeholder="Số bước..." class="w-1/3 bg-slate-900 border border-slate-700 text-white text-xs rounded p-2">
-                        <input type="text" id="reasonInput-${t.id}" placeholder="Lý do cộng/trừ..." class="w-2/3 bg-slate-900 border border-slate-700 text-white text-xs rounded p-2">
-                    </div>
-                    <div class="flex gap-2">
-                        <button onclick="addSteps(${t.id}, false)" class="flex-1 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded text-xs font-bold">+ Cộng Điểm</button>
-                        <button onclick="addSteps(${t.id}, true)" class="flex-1 py-2 bg-rose-600 hover:bg-rose-500 text-white rounded text-xs font-bold">- Trừ Điểm</button>
-                    </div>
-                </div>
-            `).join('');
+                `;
+            }).join('');
+
+            renderRosterBoard();
         }
+
+        function renderRosterBoard() {
+            const colsGrid = document.getElementById('rosterColumnsGrid');
+            const badge = document.getElementById('assignedCountBadge');
+            const assignedCount = state.students.filter(s => s.groupId >= 1 && s.groupId <= 4).length;
+            badge.textContent = `Đã xếp: ${assignedCount}/${state.students.length} HS`;
+
+            const columns = [
+                { id: 0, title: "Chưa Xếp Tổ", icon: "📋", headerClass: "text-slate-300 border-slate-700" },
+                { id: 1, title: "Tổ 1", icon: "🦆", headerClass: "text-amber-300 border-amber-500/40" },
+                { id: 2, title: "Tổ 2", icon: "🐥", headerClass: "text-pink-400 border-pink-500/40" },
+                { id: 3, title: "Tổ 3", icon: "🦢", headerClass: "text-sky-400 border-sky-500/40" },
+                { id: 4, title: "Tổ 4", icon: "🦩", headerClass: "text-purple-400 border-purple-500/40" },
+            ];
+
+            colsGrid.innerHTML = columns.map(col => {
+                const list = state.students.filter(s => (s.groupId || 0) === col.id);
+                const cardsHtml = list.length ? list.map(s => `
+                    <div draggable="true"
+                         ondragstart="handleDragStart(event, ${s.id})"
+                         ondragend="handleDragEnd(event)"
+                         class="bg-slate-900 hover:bg-slate-800 border border-slate-700/90 rounded-lg p-2 text-xs cursor-grab active:cursor-grabbing transition space-y-1.5 select-none">
+                        <div class="flex items-center justify-between gap-1">
+                            <span class="font-bold text-white truncate" title="${s.label}">
+                                <i class="fa-solid fa-grip-vertical text-slate-500 mr-1"></i>${s.label}
+                            </span>
+                            <span class="font-mono text-[11px] text-amber-300 font-bold shrink-0">${s.steps}đ</span>
+                        </div>
+                        <div class="flex items-center gap-1 pt-0.5">
+                            ${[1, 2, 3, 4].map(gId => `
+                                <button type="button"
+                                        onclick="assignStudentGroup(${s.id}, ${gId})"
+                                        class="flex-1 py-0.5 rounded text-[10px] font-bold transition ${s.groupId === gId ? 'bg-amber-400 text-slate-950' : 'bg-slate-800 text-slate-300 hover:bg-slate-700'}">
+                                    T${gId}
+                                </button>
+                            `).join('')}
+                            ${s.groupId !== 0 ? `
+                                <button type="button"
+                                        onclick="assignStudentGroup(${s.id}, 0)"
+                                        title="Bỏ khỏi tổ"
+                                        class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-rose-950/80 text-rose-300 hover:bg-rose-800">
+                                    ✕
+                                </button>
+                            ` : ''}
+                        </div>
+                    </div>
+                `).join('') : `<div class="text-[11px] text-slate-500 italic text-center py-6 border border-dashed border-slate-800 rounded-lg">Kéo tên HS vào đây</div>`;
+
+                return `
+                    <div ondragover="handleDragOver(event)"
+                         ondragleave="handleDragLeave(event)"
+                         ondrop="handleDrop(event, ${col.id})"
+                         class="drag-zone bg-slate-950 rounded-xl p-3 border border-slate-800 flex flex-col space-y-2 min-h-[260px] transition">
+                        <div class="flex items-center justify-between border-b pb-2 ${col.headerClass}">
+                            <span class="font-bold text-xs">${col.icon} ${col.title}</span>
+                            <span class="text-[10px] bg-slate-900 px-2 py-0.5 rounded font-mono font-bold">${list.length}</span>
+                        </div>
+                        <div class="space-y-1.5 max-h-72 overflow-y-auto pr-1">
+                            ${cardsHtml}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        window.handleDragStart = function(e, studentId) {
+            draggedStudentId = studentId;
+            e.dataTransfer.effectAllowed = 'move';
+            e.dataTransfer.setData('text/plain', String(studentId));
+            e.currentTarget.classList.add('opacity-50');
+        };
+
+        window.handleDragEnd = function(e) {
+            e.currentTarget.classList.remove('opacity-50');
+            document.querySelectorAll('.drag-zone').forEach(el => el.classList.remove('drag-over'));
+        };
+
+        window.handleDragOver = function(e) {
+            e.preventDefault();
+            e.dataTransfer.dropEffect = 'move';
+            e.currentTarget.classList.add('drag-over');
+        };
+
+        window.handleDragLeave = function(e) {
+            e.currentTarget.classList.remove('drag-over');
+        };
+
+        window.handleDrop = function(e, targetGroupId) {
+            e.preventDefault();
+            e.currentTarget.classList.remove('drag-over');
+            const rawId = e.dataTransfer.getData('text/plain');
+            const studentId = rawId ? parseInt(rawId, 10) : draggedStudentId;
+            if (!studentId) return;
+            assignStudentGroup(studentId, targetGroupId);
+            draggedStudentId = null;
+        };
+
+        window.assignStudentGroup = function(studentId, targetGroupId) {
+            const stu = state.students.find(s => s.id === studentId);
+            if (!stu || (stu.groupId || 0) === targetGroupId) return;
+            stu.groupId = targetGroupId;
+            savePersonalDb();
+            saveDb();
+            showToast(targetGroupId === 0
+                ? `Đã chuyển ${stu.label} về danh sách chưa xếp tổ`
+                : `Đã xếp ${stu.label} vào Tổ ${targetGroupId}!`
+            );
+        };
 
         window.addSteps = function(teamId, isSubtract) {
             const input = document.getElementById(`deltaInput-${teamId}`);
             const reasonInput = document.getElementById(`reasonInput-${teamId}`);
-            let val = parseInt(input.value, 10);
-            if (isNaN(val) || val === 0) return showToast("Nhập số bước hợp lệ!", "error");
+            let val = parseFloat(input.value);
+            if (isNaN(val) || val === 0) return showToast("Nhập số điểm hợp lệ!", "error");
+            val = round2(val);
             if (isSubtract) val = -Math.abs(val);
 
             const t = state.teams.find(item => item.id === teamId);
-            t.steps = Math.max(0, t.steps + val);
+            t.bonus = round2((Number(t.bonus) || 0) + val);
 
             const timeStr = new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
             state.history.unshift({
@@ -587,12 +846,12 @@
                 teamLabel: t.label,
                 teamIcon: t.icon,
                 delta: val,
-                reason: reasonInput.value.trim() || (val > 0 ? "Cộng điểm thi đua" : "Trừ điểm thi đua")
+                reason: reasonInput.value.trim() || (val > 0 ? "Cộng điểm thi đua tổ" : "Trừ điểm thi đua tổ")
             });
 
             saveDb();
             input.value = ''; reasonInput.value = '';
-            showToast(`Đã ${val > 0 ? 'cộng' : 'trừ'} điểm thành công!`);
+            showToast(`Đã ${val > 0 ? 'cộng' : 'trừ'} ${Math.abs(val)} điểm cho ${t.label}!`);
         };
 
         document.getElementById('sendNoticeForm').addEventListener('submit', (e) => {
@@ -672,10 +931,10 @@
         });
 
         document.getElementById('resetAllBtn').addEventListener('click', () => {
-            if (confirm("Reset tất cả về 100 bước?")) {
-                state.teams = state.teams.map(t => ({ ...t, steps: 100 }));
+            if (confirm("Đặt lại điểm cộng/trừ riêng của cả 4 tổ về 0? (Điểm trung bình cá nhân vẫn giữ nguyên)")) {
+                state.teams = state.teams.map(t => ({ ...t, bonus: 0 }));
                 saveDb();
-                showToast("Đã đặt lại 100 bước!");
+                showToast("Đã đặt lại điểm cộng/trừ riêng của các tổ về 0!");
             }
         });
 
