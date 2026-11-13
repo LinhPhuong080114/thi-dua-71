@@ -212,11 +212,23 @@
             "Tấn Thành", "Quốc Thông", "Bá Tiến", "Khải Uy", "Hải Vân"
         ];
 
+        const DEFAULT_GROUPS = {
+            "Bảo Châu": 1, "Xuân An": 1,
+            "Gia Linh": 2, "Minh Đan": 2,
+            "Ngọc Ngân": 3, "Khánh Ngọc": 3,
+            "Tú Quỳnh": 4, "Khải Uy": 4
+        };
+
         const iconsList = ["🦆", "🐥", "🦢", "🦩"];
         const palette = ["#FBC02D", "#EC4899", "#38BDF8", "#C084FC", "#34D399", "#F87171", "#818CF8", "#F472B6", "#4ADE80", "#FBBF24"];
         
         const DEFAULT_TEAMS = studentNames.map((name, i) => ({
-            id: i + 1, label: name, color: palette[i % palette.length], steps: 100, icon: iconsList[i % iconsList.length]
+            id: i + 1,
+            label: name,
+            color: palette[i % palette.length],
+            steps: 100,
+            icon: iconsList[i % iconsList.length],
+            groupId: DEFAULT_GROUPS[name] || 0
         }));
 
         let state = {
@@ -240,7 +252,12 @@
             onSnapshot(docRef, (snap) => {
                 if (snap.exists()) {
                     const d = snap.data();
-                    if (d.teams) state.teams = d.teams;
+                    if (d.teams) {
+                        state.teams = d.teams.map(t => ({
+                            ...t,
+                            groupId: typeof t.groupId === 'number' ? t.groupId : (DEFAULT_GROUPS[t.label] || 0)
+                        }));
+                    }
                     if (d.history) state.history = d.history;
                     if (d.announcements) state.announcements = d.announcements;
                     if (d.accounts) state.accounts = d.accounts;
@@ -300,13 +317,14 @@
         function renderCards() {
             const container = document.getElementById('cardsGrid');
             const sorted = [...state.teams].sort((a, b) => b.steps - a.steps);
+            const topGroupTag = sorted[0].groupId ? ` • Tổ ${sorted[0].groupId}` : '';
 
             let html = `
                 <div class="bg-gradient-to-r from-amber-500/20 via-chalkBoard to-amber-500/20 rounded-2xl p-5 border-2 border-amber-400 shadow-xl flex items-center justify-between">
                     <div class="flex items-center space-x-4">
                         <span class="text-4xl sm:text-5xl animate-waddle">${sorted[0].icon}</span>
                         <div>
-                            <span class="bg-amber-400 text-slate-950 text-xs px-2.5 py-1 rounded-full font-bold uppercase">🥇 Hạng 1</span>
+                            <span class="bg-amber-400 text-slate-950 text-xs px-2.5 py-1 rounded-full font-bold uppercase">🥇 Hạng 1${topGroupTag}</span>
                             <h3 class="text-xl sm:text-3xl font-bold text-white mt-1">${sorted[0].label}</h3>
                         </div>
                     </div>
@@ -319,10 +337,11 @@
             `;
 
             sorted.slice(1).forEach((t, i) => {
+                const gBadge = t.groupId ? `<span class="text-[10px] text-emerald-300/80 ml-1">(T${t.groupId})</span>` : '';
                 html += `
                     <div class="bg-chalkSoft/40 border border-emerald-800/50 rounded-xl p-2.5 flex items-center justify-between text-xs">
-                        <div class="truncate"><span class="text-emerald-400 font-bold font-mono">#${i+2}</span> <span class="text-white font-semibold truncate">${t.label}</span></div>
-                        <span class="text-amber-300 font-mono font-bold">${t.steps}</span>
+                        <div class="truncate"><span class="text-emerald-400 font-bold font-mono">#${i+2}</span> <span class="text-white font-semibold truncate">${t.label}</span>${gBadge}</div>
+                        <span class="text-amber-300 font-mono font-bold ml-1">${t.steps}</span>
                     </div>
                 `;
             });
@@ -336,10 +355,11 @@
             const trackMax = Math.ceil((maxSteps + 30) / 10) * 10;
             container.innerHTML = state.teams.map(t => {
                 const pct = Math.min(100, Math.max(0, (t.steps / trackMax) * 100));
+                const gText = t.groupId ? ` - Tổ ${t.groupId}` : '';
                 return `
                     <div class="space-y-1">
                         <div class="flex justify-between text-xs font-bold px-1">
-                            <span class="text-emerald-200">${t.label} (STT ${t.id})</span>
+                            <span class="text-emerald-200">${t.label} (STT ${t.id}${gText})</span>
                             <span class="text-amber-300 font-mono">${t.steps} Điểm</span>
                         </div>
                         <div class="relative h-10 bg-chalkSoft/50 rounded-lg border border-emerald-700/50 flex items-center px-3 overflow-hidden">
@@ -462,7 +482,7 @@
                 return;
             }
 
-            let teamOptions = state.teams.map(t => `<option value="${t.id}">${t.label} (STT ${t.id} - ${t.steps} điểm)</option>`).join('');
+            let teamOptions = state.teams.map(t => `<option value="${t.id}">${t.label} (STT ${t.id}${t.groupId ? ` - Tổ ${t.groupId}` : ''} - ${t.steps}đ)</option>`).join('');
             let renameHtml = state.teams.map(t => `
                 <div class="flex items-center gap-2 bg-slate-900 p-2 rounded-lg border border-slate-800">
                     <span class="text-xs font-mono text-amber-400 w-8">#${t.id}</span>
@@ -529,7 +549,7 @@
             deltaInput.value = ''; 
             timeInput.value = ''; 
             reasonInput.value = '';
-            showToast("Đã cập nhật điểm học sinh!");
+            showToast("Đã cập nhật điểm học sinh (đã đồng bộ sang Tổ)!");
         };
 
         window.updateTeamName = function(teamId) {
